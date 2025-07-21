@@ -44,6 +44,6 @@
 - 各种花卉
 
 
-复制自[flier268](https://github.com/flier268/AutoHarvestMod)并由本人更新到1.20.4
+复制自[flier268](https://github.com/flier268/AutoHarvestMod)并由 Sz-Yuan 更新到1.20.4
 
 复制自[Sz-Yuan](https://github.com/Sz-Yuan/AutoHarvest/tree/1.21-1.3)并由本人更新到1.21.7
