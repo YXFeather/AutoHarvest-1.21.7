@@ -1,0 +1,36 @@
+{
+	"schemaVersion": 1,
+	"id": "autoharvest",
+	"version": "${version}",
+	"name": "AutoHarvest",
+	"description": "Automatically terminate and harvest crops.",
+	"authors": [
+		"SzYuan",
+		"Zelather64"
+	],
+	"contact": {
+		"homepage": "https://fabricmc.net/",
+		"sources": "https://github.com/FabricMC/fabric-example-mod"
+	},
+	"license": "MIT",
+	"icon": "assets/autoharvest/icon.png",
+	"environment": "client",
+	"entrypoints": {
+		"client": [
+			"cat.zelather64.autoharvest.AutoHarvest"
+		],
+		"modmenu": [
+			"cat.zelather64.autoharvest.Plugin.ModMenu"
+		]
+	},
+
+	"depends": {
+		"fabricloader": ">=0.16.14",
+		"minecraft": "~1.21.7",
+		"java": ">=21",
+		"fabric-api": "*"
+	},
+	"suggests": {
+		"another-mod": "*"
+	}
+}
