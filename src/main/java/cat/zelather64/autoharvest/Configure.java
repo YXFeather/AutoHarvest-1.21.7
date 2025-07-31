@@ -50,6 +50,12 @@ public class Configure {
         String name = "keepWaterNearBy";
     }
 
+    public TryFillItems tryFillItems = new TryFillItems();
+
+    public static class TryFillItems {
+        public boolean value = true;
+        String name = "TryFillItemsInHand";
+    }
 
     public Configure() {
         this.configFile = FabricLoader
@@ -86,6 +92,12 @@ public class Configure {
                     } catch (Exception e) {
                     }
                 }
+                if (jsonObject.has(tryFillItems.name)) {
+                    try {
+                        this.tryFillItems.value = jsonObject.getAsJsonPrimitive(tryFillItems.name).getAsBoolean();
+                    } catch (Exception e) {
+                    }
+                }
                 if (jsonObject.has(effect_radius.name)) {
                     try {
                         this.effect_radius.value = jsonObject.getAsJsonPrimitive(effect_radius.name).getAsInt();
@@ -113,6 +125,9 @@ public class Configure {
     public Configure save() {
         JsonObject jsonObject = new JsonObject();
         jsonObject.addProperty(flowerISseed.name, this.flowerISseed.value);
+        jsonObject.addProperty(keepFishingRodAlive.name, this.keepFishingRodAlive.value);
+        jsonObject.addProperty(keepWaterNearBy.name, this.keepWaterNearBy.value);
+        jsonObject.addProperty(tryFillItems.name, this.tryFillItems.value);
         jsonObject.addProperty(effect_radius.name, this.effect_radius.value);
         jsonObject.addProperty(tickSkip.name, this.tickSkip.value);
 

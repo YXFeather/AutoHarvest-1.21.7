@@ -63,15 +63,18 @@ public class TickListener {
                 case SEED -> seedTick();
                 case HARVEST -> harvestTick();
                 case PLANT -> {
-                    offplantTick();
+//                    offplantTick();
                     mainplantTick();
                 }
                 case Farmer -> {
                     harvestTick();
-                    offplantTick();
+//                    offplantTick();
                     mainplantTick();
                 }
-                case FEED -> feedTick();
+                case FEED -> {
+                    feedTick();
+                    feedAxolotTick();
+                }
                 case FISHING -> fishingTick();
                 case BONEMEALING -> bonemealingTick();
                 case HOEING -> {
@@ -101,8 +104,8 @@ public class TickListener {
 
     /* 手执行右键工作 */
     private void rightButton(double X, double Y, double Z, Direction direction, BlockPos pos, Hand hand) {
-        BlockHitResult blockHitResult = new BlockHitResult(new Vec3d(X, Y, Z), direction, pos, false);
         assert MinecraftClient.getInstance().interactionManager != null;
+        BlockHitResult blockHitResult = new BlockHitResult(new Vec3d(X, Y, Z), direction, pos, false);
         MinecraftClient.getInstance().interactionManager.interactBlock(MinecraftClient.getInstance().player, hand, blockHitResult);
     }
 
@@ -128,23 +131,19 @@ public class TickListener {
     /* 主手耕地 */
     private void mainHoeingTick() {
         ItemStack MainHandItem = p.getMainHandStack();
-
         if (MainHandItem == null || !MainHandItem.isIn(ItemTags.HOES)) return;
-
-        hoeingTick(MainHandItem, Hand.MAIN_HAND);
+        hoeingTick(Hand.MAIN_HAND);
     }
 
     /* 副手耕地 */
     private void offHoeingTick() {
         ItemStack OffHandItem = p.getOffHandStack();
-
         if (OffHandItem == null || !OffHandItem.isIn(ItemTags.HOES)) return;
-
-        hoeingTick(OffHandItem, Hand.OFF_HAND);
+        hoeingTick(Hand.OFF_HAND);
     }
 
     /* 耕地 */
-    private void hoeingTick(ItemStack itemStack, Hand hand) {
+    private void hoeingTick(Hand hand) {
         World w = p.getWorld();
         int radius = configure.effect_radius.value;
         int X = (int) Math.floor(p.getX());
@@ -185,24 +184,19 @@ public class TickListener {
     /* 主手去皮 */
     private void mainHandStripTick() {
         ItemStack MainHandItem = p.getMainHandStack();
-
         if (MainHandItem == null || (!MainHandItem.isIn(ItemTags.AXES) && MainHandItem.getItem() != Items.SHEARS)) return;
-
         StripTick(MainHandItem, Hand.MAIN_HAND);
     }
 
     /* 副手去皮 */
     private void offHandStripTick() {
         ItemStack OffHandItem = p.getOffHandStack();
-
         if (OffHandItem == null || (!OffHandItem.isIn(ItemTags.AXES) && OffHandItem.getItem() != Items.SHEARS)) return;
-
         StripTick(OffHandItem, Hand.OFF_HAND);
     }
 
     /* 去皮 */
     private void StripTick(ItemStack itemStack, Hand hand) {
-
         World w = p.getWorld();
         int radius = configure.effect_radius.value;
         int X = (int) Math.floor(p.getX());
@@ -259,6 +253,16 @@ public class TickListener {
         }
     }
 
+    private void minusOneInHand() {
+        ItemStack st = p.getMainHandStack();
+        if (st != null) {
+            if (st.getCount() <= 1) {
+                p.setStackInHand(Hand.MAIN_HAND, ItemStack.EMPTY);
+            } else {
+                st.setCount(st.getCount() - 1);
+            }
+        }
+    }
 
     /* 查找背包内物品 */
     private ItemStack tryFillItemInHand() {
@@ -269,8 +273,8 @@ public class TickListener {
                 for (int idx = 0; idx < 36; ++idx) {
                     ItemStack s = inv.get(idx);
                     if (s.getItem() == lastUsedItem.getItem() &&
-                            s.getDamage() == lastUsedItem.getDamage() &&
-                            s.getComponents().isEmpty()) {
+                            s.getDamage() == lastUsedItem.getDamage()
+                            ) {
                         AutoHarvest.instance.taskManager.Add_MoveItem(idx, p.getInventory().getSelectedSlot());
                         return s;
                     }
@@ -283,31 +287,26 @@ public class TickListener {
     }
 
     /* 副手种植 */
-    private void offplantTick() {
-        ItemStack offHandItem = p.getOffHandStack();
-
-        if (offHandItem == null) return;
-
-        plantTick(offHandItem, Hand.OFF_HAND);
-    }
+//    private void offplantTick() {
+//        ItemStack offHandItem = p.getOffHandStack();
+//
+//        if (offHandItem == null) return;
+//
+//        plantTick(offHandItem, Hand.OFF_HAND);
+//    }
 
     /* 主手种植 */
     private void mainplantTick() {
         ItemStack HandItem = p.getMainHandStack();
-
         if (HandItem == null) return;
-
         plantTick(HandItem, Hand.MAIN_HAND);
     }
 
     /* 种植 */
     private void plantTick(ItemStack itemStack, Hand hand) {
-        if (!CropManager.isSeed(itemStack)) {
-            if (CropManager.isCocoa(itemStack)) {
-                plantCocoaTick();
-            }
-            return;
-        }
+        if (CropManager.isCocoa(itemStack)) plantCocoaTick();
+        if (lastUsedItem == null && !CropManager.isSeed(itemStack)) return;
+        if (configure.tryFillItems.value) itemStack = tryFillItemInHand();
 
         World w = p.getWorld();
         int radius = configure.effect_radius.value;
@@ -327,6 +326,7 @@ public class TickListener {
                     assert MinecraftClient.getInstance().interactionManager != null;
                     BlockPos downPos = pos.down();
                     rightButton(X + deltaX + 0.5, Y, Z + deltaZ + 0.5, Direction.UP, downPos, hand);
+                    minusOneInHand();
                     return;
                 }
             }
@@ -335,9 +335,8 @@ public class TickListener {
     /* 可可豆种植 */
     private void plantCocoaTick() {
         ItemStack mhand = p.getMainHandStack();
-        if (!CropManager.isCocoa(mhand)) {
-            return;
-        }
+        if (!CropManager.isCocoa(mhand)) return;
+        if (configure.tryFillItems.value) mhand = tryFillItemInHand();
 
         World w = p.getWorld();
         int radius = configure.effect_radius.value;
@@ -359,6 +358,7 @@ public class TickListener {
                         if (w.getBlockState(tmpPos).getBlock() == Blocks.AIR) {
                             lastUsedItem = mhand.copy();
                             rightButton(X + deltaX + 1, Y + deltaY + 0.5, Z + deltaZ + 0.5, tmpFace, pos, Hand.MAIN_HAND);
+                            minusOneInHand();
                             return;
                         }
 
@@ -367,6 +367,7 @@ public class TickListener {
                         if (w.getBlockState(tmpPos).getBlock() == Blocks.AIR) {
                             lastUsedItem = mhand.copy();
                             rightButton(X + deltaX, Y + deltaY + 0.5, Z + deltaZ + 0.5, tmpFace, pos, Hand.MAIN_HAND);
+                            minusOneInHand();
                             return;
                         }
 
@@ -375,6 +376,7 @@ public class TickListener {
                         if (w.getBlockState(tmpPos).getBlock() == Blocks.AIR) {
                             lastUsedItem = mhand.copy();
                             rightButton(X + deltaX + 0.5, Y + deltaY + 0.5, Z + deltaZ + 1, tmpFace, pos, Hand.MAIN_HAND);
+                            minusOneInHand();
                             return;
                         }
 
@@ -383,6 +385,7 @@ public class TickListener {
                         if (w.getBlockState(tmpPos).getBlock() == Blocks.AIR) {
                             lastUsedItem = mhand.copy();
                             rightButton(X + deltaX + 0.5, Y + deltaY + 0.5, Z + deltaZ, tmpFace, pos, Hand.MAIN_HAND);
+                            minusOneInHand();
                             return;
                         }
                     }
@@ -403,8 +406,8 @@ public class TickListener {
 
     /* 动物喂养 */
     private void feedTick() {
-        ItemStack handItem = tryFillItemInHand();
-        ItemStack mainHandItem = p.getMainHandStack();
+        ItemStack handItem = p.getMainHandStack();
+        if (configure.tryFillItems.value) handItem = tryFillItemInHand();
 
         if (handItem == null) return;
 
@@ -430,21 +433,6 @@ public class TickListener {
                 assert MinecraftClient.getInstance().interactionManager != null;
                 MinecraftClient.getInstance().interactionManager.interactEntity(p, e, Hand.MAIN_HAND);
                 return;
-            }
-        }
-        // 繁殖美西螈
-        Collection<Class<? extends AnimalEntity>> AxolotList = CropManager.AXOLOT_MAP.get(handItem.getItem());
-        for (Class<? extends AnimalEntity> type : AxolotList) {
-            for (AnimalEntity e : p.getWorld().getEntitiesByClass(
-                    type,
-                    box,
-                    animalEntity -> animalEntity.getBreedingAge() >= 0 && animalEntity.canEat())) {
-                if (mainHandItem.isOf(Items.TROPICAL_FISH_BUCKET)) {
-                    lastUsedItem = handItem.copy();
-                    assert MinecraftClient.getInstance().interactionManager != null;
-                    MinecraftClient.getInstance().interactionManager.interactEntity(p, e, Hand.MAIN_HAND);
-                    break;
-                }
             }
         }
         // 繁殖悦灵
@@ -473,6 +461,32 @@ public class TickListener {
         }
     }
 
+    // 繁殖美西螈
+    private  void feedAxolotTick() {
+        ItemStack mainHandItem = p.getMainHandStack();
+        ItemStack handItem = mainHandItem;
+        if (configure.tryFillItems.value) handItem = tryFillItemInHand();
+
+        int radius = configure.effect_radius.value;
+        Box box = new Box(p.getX() - radius, p.getY() - radius,
+                p.getZ() - radius, p.getX() + radius,
+                p.getY() + radius, p.getZ() + radius);
+
+        Collection<Class<? extends AnimalEntity>> AxolotList = CropManager.AXOLOT_MAP.get(handItem.getItem());
+        for (Class<? extends AnimalEntity> type : AxolotList) {
+            for (AnimalEntity e : p.getWorld().getEntitiesByClass(
+                    type,
+                    box,
+                    animalEntity -> animalEntity.getBreedingAge() >= 0 && animalEntity.canEat())) {
+                if (mainHandItem.isOf(Items.TROPICAL_FISH_BUCKET)) {
+                    lastUsedItem = handItem.copy();
+                    assert MinecraftClient.getInstance().interactionManager != null;
+                    MinecraftClient.getInstance().interactionManager.interactEntity(p, e, Hand.MAIN_HAND);
+                    break;
+                }
+            }
+        }
+    }
 
     /**
      * @return -1: doesn't have rod; 0: no change; 1: change
@@ -545,11 +559,12 @@ public class TickListener {
     /* 骨粉催熟 */
     private void bonemealingTick() {
         ItemStack handItem = p.getMainHandStack();
+
+        if (configure.tryFillItems.value){
+            if (!CropManager.isBoneMeal(handItem)) handItem = tryFillItemInHand();
+        }
         if (handItem == null || !CropManager.isBoneMeal(handItem)) {
             return;
-        }
-        else {
-            handItem = tryFillItemInHand();
         }
 
         int radius = configure.effect_radius.value;
@@ -570,6 +585,7 @@ public class TickListener {
                             assert handItem != null;
                             lastUsedItem = handItem.copy();
                             rightButton(X + deltaX + 0.5, Y + deltaY + 0.5, Z + deltaZ + 0.5, Direction.UP, pos, Hand.MAIN_HAND);
+                            minusOneInHand();
                             return;
                         }
                     }
@@ -578,6 +594,7 @@ public class TickListener {
                             assert handItem != null;
                             lastUsedItem = handItem.copy();
                             rightButton(X + deltaX + 0.5, Y + deltaY + 0.5, Z + deltaZ + 0.5, Direction.UP, pos, Hand.MAIN_HAND);
+                            minusOneInHand();
                             return;
                         }
                     }

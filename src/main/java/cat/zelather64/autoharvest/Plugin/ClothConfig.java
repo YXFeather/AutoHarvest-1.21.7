@@ -22,8 +22,9 @@ public class ClothConfig {
         Configure c = AutoHarvest.instance.configure.load();
 
         scrolling.addEntry(entryBuilder.startBooleanToggle(Text.translatable("config.flower_is_seed"), c.flowerISseed.value).setDefaultValue(false).setSaveConsumer(b -> c.flowerISseed.value = b).build());
-        scrolling.addEntry(entryBuilder.startBooleanToggle(Text.translatable("config.keep_water_near_by"), c.keepWaterNearBy.value).setDefaultValue(new Configure.KeepWaterNearBy().value).setSaveConsumer(b -> c.keepWaterNearBy.value = b).build());
+        scrolling.addEntry(entryBuilder.startBooleanToggle(Text.translatable("config.keep_water_near_by"), c.keepWaterNearBy.value).setTooltip(Text.translatable("config.keep_water_near_by_tooltip")).setDefaultValue(new Configure.KeepWaterNearBy().value).setSaveConsumer(b -> c.keepWaterNearBy.value = b).build());
         scrolling.addEntry(entryBuilder.startBooleanToggle(Text.translatable("config.keep_fishing_rod_alive"), c.keepFishingRodAlive.value).setDefaultValue(new Configure.KeepFishingRodAlive().value).setSaveConsumer(b -> c.keepFishingRodAlive.value = b).build());
+        scrolling.addEntry(entryBuilder.startBooleanToggle(Text.translatable("config.try_fill_items_in_hand"), c.tryFillItems.value).setDefaultValue(new Configure.TryFillItems().value).setSaveConsumer(b -> c.tryFillItems.value = b).build());
 
         scrolling.addEntry(entryBuilder.startIntSlider(Text.translatable("config.effect_radius"), c.effect_radius.value, c.effect_radius.Min, c.effect_radius.Max).setDefaultValue((new Configure.Effect_radius()).value).setSaveConsumer(b -> c.effect_radius.value = b).build());
         scrolling.addEntry(entryBuilder.startIntField(Text.translatable("config.tick_skip"),c.tickSkip.value).setTooltip(Text.translatable("config.tick_skip_tooltip")).setDefaultValue(new Configure.TickSkip().value).setSaveConsumer(b -> c.tickSkip.value = b).build());
