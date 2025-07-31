@@ -4,7 +4,6 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.block.*;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
-import net.minecraft.client.network.ClientPlayerInteractionManager;
 import net.minecraft.entity.passive.AllayEntity;
 import net.minecraft.entity.passive.AnimalEntity;
 import net.minecraft.entity.passive.SheepEntity;
@@ -30,8 +29,6 @@ public class TickListener {
 
     private long fishBitesAt = 0L;
     private ItemStack lastUsedItem = null;
-
-    ClientPlayerInteractionManager im = MinecraftClient.getInstance().interactionManager;
 
     public TickListener(Configure configure, ClientPlayerEntity player) {
         this.configure = configure;
@@ -98,15 +95,15 @@ public class TickListener {
 
     /* 手执行左键动作 */
     private void leftButton(BlockPos pos, Direction direction) {
-        assert im != null;
-        im.attackBlock(pos, direction);
+        assert MinecraftClient.getInstance().interactionManager != null;
+        MinecraftClient.getInstance().interactionManager.attackBlock(pos, direction);
     }
 
     /* 手执行右键工作 */
     private void rightButton(double X, double Y, double Z, Direction direction, BlockPos pos, Hand hand) {
         BlockHitResult blockHitResult = new BlockHitResult(new Vec3d(X, Y, Z), direction, pos, false);
-        assert im != null;
-        im.interactBlock(MinecraftClient.getInstance().player, hand, blockHitResult);
+        assert MinecraftClient.getInstance().interactionManager != null;
+        MinecraftClient.getInstance().interactionManager.interactBlock(MinecraftClient.getInstance().player, hand, blockHitResult);
     }
 
     /* clear all grass on land */
@@ -327,7 +324,7 @@ public class TickListener {
                     if (w.getBlockState(pos.down()).getBlock() == Blocks.KELP)
                         continue;
                     lastUsedItem = itemStack.copy();
-                    assert im != null;
+                    assert MinecraftClient.getInstance().interactionManager != null;
                     BlockPos downPos = pos.down();
                     rightButton(X + deltaX + 0.5, Y, Z + deltaZ + 0.5, Direction.UP, downPos, hand);
                     return;
@@ -430,8 +427,8 @@ public class TickListener {
                         return false;
                     })) {
                 lastUsedItem = handItem.copy();
-                assert im != null;
-                im.interactEntity(p, e, Hand.MAIN_HAND);
+                assert MinecraftClient.getInstance().interactionManager != null;
+                MinecraftClient.getInstance().interactionManager.interactEntity(p, e, Hand.MAIN_HAND);
                 return;
             }
         }
@@ -444,8 +441,8 @@ public class TickListener {
                     animalEntity -> animalEntity.getBreedingAge() >= 0 && animalEntity.canEat())) {
                 if (mainHandItem.isOf(Items.TROPICAL_FISH_BUCKET)) {
                     lastUsedItem = handItem.copy();
-                    assert im != null;
-                    im.interactEntity(p, e, Hand.MAIN_HAND);
+                    assert MinecraftClient.getInstance().interactionManager != null;
+                    MinecraftClient.getInstance().interactionManager.interactEntity(p, e, Hand.MAIN_HAND);
                     break;
                 }
             }
@@ -458,8 +455,8 @@ public class TickListener {
                     box,
                     allayEntity -> !allayEntity.isHoldingItem() && allayEntity.isDancing())) {
                 lastUsedItem = handItem.copy();
-                assert im != null;
-                im.interactEntity(p, e, Hand.MAIN_HAND);
+                assert MinecraftClient.getInstance().interactionManager != null;
+                MinecraftClient.getInstance().interactionManager.interactEntity(p, e, Hand.MAIN_HAND);
             }
         }
         // 繁殖普通动物
@@ -470,8 +467,8 @@ public class TickListener {
                     box,
                     animalEntity -> animalEntity.getBreedingAge() >= 0 && animalEntity.canEat())) {
                 lastUsedItem = handItem.copy();
-                assert im != null;
-                im.interactEntity(p, e, Hand.MAIN_HAND);
+                assert MinecraftClient.getInstance().interactionManager != null;
+                MinecraftClient.getInstance().interactionManager.interactEntity(p, e, Hand.MAIN_HAND);
             }
         }
     }
@@ -526,16 +523,16 @@ public class TickListener {
                 /* Reel */
                 if (fishBitesAt == 0 && isFishBites(p)) {
                     fishBitesAt = getWorldTime();
-                    assert im != null;
-                    im.interactItem(
+                    assert MinecraftClient.getInstance().interactionManager != null;
+                    MinecraftClient.getInstance().interactionManager.interactItem(
                             p,
                             Hand.MAIN_HAND);
                 }
 
                 /* Cast */
                 if (fishBitesAt != 0 && fishBitesAt + 20 <= getWorldTime()) {
-                    assert im != null;
-                    im.interactItem(
+                    assert MinecraftClient.getInstance().interactionManager != null;
+                    MinecraftClient.getInstance().interactionManager.interactItem(
                             p,
                             Hand.MAIN_HAND);
                     fishBitesAt = 0;
@@ -550,7 +547,8 @@ public class TickListener {
         ItemStack handItem = p.getMainHandStack();
         if (handItem == null || !CropManager.isBoneMeal(handItem)) {
             return;
-        } else {
+        }
+        else {
             handItem = tryFillItemInHand();
         }
 
