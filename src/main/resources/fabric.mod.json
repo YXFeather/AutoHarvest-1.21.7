@@ -5,7 +5,9 @@
 	"name": "AutoHarvest",
 	"description": "Automatically terminate and harvest crops.",
 	"authors": [
-		"SzYuan",
+		"SzYuan"
+	],
+	"contributors": [
 		"Zelather64"
 	],
 	"contact": {

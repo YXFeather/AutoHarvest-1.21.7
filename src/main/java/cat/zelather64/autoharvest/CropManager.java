@@ -25,8 +25,6 @@ public class CropManager {
     public static final Block BAMBOO = Blocks.BAMBOO;
     public static final Block KELP = Blocks.KELP;
     public static final Block KELP_PLANT = Blocks.KELP_PLANT;
-    // 瓶子草
-    public static final Block PITCHER_CROP = Blocks.PITCHER_CROP;
 
     public static final Set<Block> WEED_BLOCKS = new HashSet<>() {
         {
@@ -254,8 +252,10 @@ public class CropManager {
             return (blockDown == REED_BLOCK && blockDown2 != REED_BLOCK) ||
                     (blockDown == BAMBOO && blockDown2 != BAMBOO) ||
                     (blockDown == KELP_PLANT && blockDown2 != KELP_PLANT);
-        } else if (b == PITCHER_CROP) {
+        } else if (b instanceof PitcherCropBlock) {
             return stat.get(PitcherCropBlock.AGE) >= 4;
+        } else if (b instanceof CocoaBlock) {
+            return stat.get(CocoaBlock.AGE) >= 2;
         }
         return false;
     }
