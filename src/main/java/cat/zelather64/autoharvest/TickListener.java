@@ -244,7 +244,7 @@ public class TickListener {
                         if (block == Blocks.SWEET_BERRY_BUSH) {
                             rightButton(X + deltaX + 0.5, Y + deltaY - 0.5, Z + deltaZ + 0.5, Direction.UP, pos, Hand.MAIN_HAND);
                         }
-                        if (block instanceof CocoaBlock || block instanceof BambooBlock) {
+                        if (CropManager.needBreakingProgress(state)) {
                             assert MinecraftClient.getInstance().interactionManager != null;
                             MinecraftClient.getInstance().interactionManager.updateBlockBreakingProgress(pos, Direction.UP);
                         }
@@ -418,7 +418,7 @@ public class TickListener {
         Box box = new Box(p.getX() - radius, p.getY() - radius,
                             p.getZ() - radius, p.getX() + radius,
                             p.getY() + radius, p.getZ() + radius);
-
+        // 剪羊毛
         Collection<Class<? extends AnimalEntity>> needShearAnimalList = CropManager.SHEAR_MAP.get(handItem.getItem());
         for (Class<? extends AnimalEntity> type : needShearAnimalList) {
             for (AnimalEntity e : p.getWorld().getEntitiesByClass(

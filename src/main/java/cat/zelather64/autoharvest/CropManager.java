@@ -256,6 +256,8 @@ public class CropManager {
             return stat.get(PitcherCropBlock.AGE) >= 4;
         } else if (b instanceof CocoaBlock) {
             return stat.get(CocoaBlock.AGE) >= 2;
+        } else if (b == Blocks.PUMPKIN || b == Blocks.MELON) {
+            return true;
         }
         return false;
     }
@@ -297,5 +299,10 @@ public class CropManager {
         if (!SEED_MAP.containsValue(m))
             return false;
         return SEED_MAP.inverse().get(m).getDefaultState().canPlaceAt(w, p);
+    }
+
+    public static boolean needBreakingProgress(BlockState s) {
+        return s.getBlock() == Blocks.COCOA || s.getBlock() == Blocks.BAMBOO ||
+                s.getBlock() == Blocks.PUMPKIN || s.getBlock() == Blocks.MELON;
     }
 }
