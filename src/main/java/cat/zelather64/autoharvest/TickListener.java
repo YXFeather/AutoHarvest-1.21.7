@@ -243,12 +243,10 @@ public class TickListener {
                     if (CropManager.isCropMature(w, pos, state, block)) {
                         if (block == Blocks.SWEET_BERRY_BUSH) {
                             rightButton(X + deltaX + 0.5, Y + deltaY - 0.5, Z + deltaZ + 0.5, Direction.UP, pos, Hand.MAIN_HAND);
-                        }
-                        if (CropManager.needBreakingProgress(state)) {
+                        } else if (CropManager.needBreakingProgress(state)) {
                             assert MinecraftClient.getInstance().interactionManager != null;
                             MinecraftClient.getInstance().interactionManager.updateBlockBreakingProgress(pos, Direction.UP);
-                        }
-                        else {
+                        } else {
                             leftButton(pos, Direction.UP);
                         }
                         return;
@@ -488,7 +486,6 @@ public class TickListener {
                     lastUsedItem = handItem.copy();
                     assert MinecraftClient.getInstance().interactionManager != null;
                     MinecraftClient.getInstance().interactionManager.interactEntity(p, e, Hand.MAIN_HAND);
-                    minusOneInHand();
                     break;
                 }
             }
