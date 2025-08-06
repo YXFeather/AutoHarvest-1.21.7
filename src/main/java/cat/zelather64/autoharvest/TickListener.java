@@ -4,10 +4,9 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.block.*;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
-import net.minecraft.client.network.ClientPlayerInteractionManager;
-import net.minecraft.entity.Entity;
 import net.minecraft.entity.passive.AllayEntity;
 import net.minecraft.entity.passive.AnimalEntity;
+import net.minecraft.entity.passive.SheepEntity;
 import net.minecraft.entity.projectile.FishingBobberEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
@@ -22,9 +21,7 @@ import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
 
 public class TickListener {
     private final Configure configure;
@@ -63,7 +60,7 @@ public class TickListener {
                 return;
             }
             switch (AutoHarvest.instance.mode) {
-                case SEED -> weedTick();
+                case SEED -> seedTick();
                 case HARVEST -> harvestTick();
                 case PLANT ->
 //                    offplantTick();
@@ -74,7 +71,10 @@ public class TickListener {
 //                    offplantTick();
                     mainPlantTick();
                 }
-                case FEED -> feedTick();
+                case FEED -> {
+                    feedTick();
+                    feedAxolotTick();
+                }
                 case FISHING -> fishingTick();
                 case BONEMEALING -> bonemealingTick();
                 case HOEING -> {
@@ -97,9 +97,9 @@ public class TickListener {
     }
 
     /* 手执行左键动作 */
-    private void leftButton(BlockPos pos) {
+    private void leftButton(BlockPos pos, Direction direction) {
         assert MinecraftClient.getInstance().interactionManager != null;
-        MinecraftClient.getInstance().interactionManager.attackBlock(pos, Direction.UP);
+        MinecraftClient.getInstance().interactionManager.attackBlock(pos, direction);
     }
 
     /* 手执行右键工作 */
@@ -110,40 +110,22 @@ public class TickListener {
     }
 
     /* clear all grass on land */
-    private void weedTick() {
-        World world = p.getWorld();
+    private void seedTick() {
+        World w = p.getWorld();
         int radius = configure.effect_radius.value;
-        Vec3d posVec = p.getPos();
-        int centerX = (int) Math.floor(posVec.x);
-        int centerY = (int) Math.floor(posVec.y);// the "leg block"
-        int centerZ = (int) Math.floor(posVec.z);
-
-        // 使用可变位置减少对象创建
-        BlockPos.Mutable mutablePos = new BlockPos.Mutable();
-
-        boolean treatFlowersAsWeeds = AutoHarvest.instance.configure.flowerISseed.value;
-
-        for (int dy = 3; dy >= -2; dy--) {
-            int y = centerY + dy;
-
-            for (int dx = -radius; dx <= radius; dx++) {
-                for (int dz = -radius; dz <= radius; dz++) {
-                    mutablePos.set(centerX + dx, y, centerZ + dz);
-
-                    // 快速失败检查：可达性
-                    if (!canReachBlock(p, mutablePos)) continue;
-
-                    // 检查是否为杂草或（配置开启时的）花朵
-                    if (CropManager.isWeedBlock(world, mutablePos) ||
-                            (treatFlowersAsWeeds && CropManager.isFlowerBlock(world, mutablePos))) {
-
-                        // 执行清除操作
-                        leftButton(mutablePos.toImmutable());
-                        return;  // 清除后立即返回
+        int X = (int) Math.floor(p.getX());
+        int Y = (int) Math.floor(p.getY());// the "leg block"
+        int Z = (int) Math.floor(p.getZ());
+        for (int deltaY = 3; deltaY >= -2; --deltaY)
+            for (int deltaX = -radius; deltaX <= radius; ++deltaX)
+                for (int deltaZ = -radius; deltaZ <= radius; ++deltaZ) {
+                    BlockPos pos = new BlockPos(X + deltaX, Y + deltaY, Z + deltaZ);
+                    if (CropManager.isWeedBlock(w, pos) || (AutoHarvest.instance.configure.flowerISseed.value
+                            && CropManager.isFlowerBlock(w, pos))) {
+                        leftButton(pos, Direction.UP);
+                        return;
                     }
                 }
-            }
-        }
     }
 
     /* 主手耕地 */
@@ -162,35 +144,31 @@ public class TickListener {
 
     /* 耕地 */
     private void hoeingTick(Hand hand) {
-        World world = p.getWorld();
+        World w = p.getWorld();
         int radius = configure.effect_radius.value;
-        Vec3d posVec = p.getPos();
-        int centerX = (int) Math.floor(posVec.x);
-        int centerY = (int) Math.floor(posVec.y -0.2D);// 脚下方块
-        int centerZ = (int) Math.floor(posVec.z);
+        int X = (int) Math.floor(p.getX());
+        int Y = (int) Math.floor(p.getY() -0.2D);// 脚下方块
+        int Z = (int) Math.floor(p.getZ());
+        for (int deltaX = -radius; deltaX <= radius; ++deltaX){
+            for (int deltaZ = -radius; deltaZ <= radius; ++deltaZ) {
 
-        // 使用可变位置减少对象创建
-        BlockPos.Mutable mutablePos = new BlockPos.Mutable();
-
-        for (int dx = -radius; dx <= radius; dx++) {
-            for (int dz = -radius; dz <= radius; dz++) {
-                mutablePos.set(centerX + dx, centerY, centerZ + dz);
-                BlockState state = world.getBlockState(mutablePos);
+                BlockPos pos = new BlockPos(X + deltaX, Y, Z + deltaZ);
+                BlockState state = w.getBlockState(pos);
                 Block block = state.getBlock();
-
-                // 快速跳过不能耕地方块
-                if (!CropManager.tillableBlocks.contains(block)) continue;
-
-                // 处理需要水源检查的情况
-                if (configure.keepWaterNearBy.value) {
-                    if (!isWaterNearby(world, mutablePos)) continue;
+                if ((block == Blocks.DIRT ||
+                        block == Blocks.GRASS_BLOCK ||
+                        block == Blocks.COARSE_DIRT ||
+                        block == Blocks.ROOTED_DIRT)) {
+                    if(configure.keepWaterNearBy.value) {
+                        if(isWaterNearby(w, pos)) {
+                            rightButton(X + deltaX + 0.5, Y, Z + deltaZ + 0.5, Direction.UP, pos, hand);
+                        }
+                        return;
+                    }else {
+                        rightButton(X + deltaX + 0.5, Y, Z + deltaZ + 0.5, Direction.UP, pos, hand);
+                        return;
+                    }
                 }
-
-                // 执行耕地操作
-                double clickX = centerX + dx + 0.5;
-                double clickZ = centerZ + dz + 0.5;
-                rightButton(clickX, centerY, clickZ, Direction.UP, mutablePos.toImmutable(), hand);
-                return;
             }
         }
     }
@@ -219,34 +197,28 @@ public class TickListener {
 
     /* 去皮 */
     private void StripTick(ItemStack itemStack, Hand hand) {
-        World world = p.getWorld();
+        World w = p.getWorld();
         int radius = configure.effect_radius.value;
-        Vec3d posVec = p.getPos();
-        int centerX = (int) Math.floor(posVec.x);
-        int centerY = (int) Math.floor(posVec.y); //脚下方块
-        int centerZ = (int) Math.floor(posVec.z);
+        int X = (int) Math.floor(p.getX());
+        int Y = (int) Math.floor(p.getY()); //脚下方块
+        int Z = (int) Math.floor(p.getZ());
 
-        // 使用可变位置减少对象创建
-        BlockPos.Mutable mutablePos = new BlockPos.Mutable();
+        for (int deltaX = -radius; deltaX <= radius; ++deltaX) {
+            for (int deltaZ = -radius; deltaZ <= radius; ++deltaZ) {
+                for (int deltaY = 0; deltaY <= radius; ++deltaY){
+                    BlockPos pos = new BlockPos(X + deltaX, Y + deltaY, Z + deltaZ);
+                    if (!canReachBlock(p, pos)) continue;
 
-        // 优化循环顺序：Y轴优先（原木通常垂直分布）
-        for (int dy = 0; dy <= radius; dy++) {
-            int y = centerY + dy;
-            for (int dx = -radius; dx <= radius; dx++) {
-                for (int dz = -radius; dz <= radius; dz++) {
-                    mutablePos.set(centerX + dx, y, centerZ + dz);
+                    if (!CropManager.isWood(w, pos)) continue;
 
-                    if (!canReachBlock(p, mutablePos)) continue;
-
-                    if (!CropManager.isWood(world, mutablePos)) continue;
-
-                    if (itemStack.getItem() == Items.SHEARS) {
-                        // 雕刻南瓜
-                        performStripAction(mutablePos, hand);
+                    //雕刻南瓜
+                    if((CropManager.isWood(w, pos)) && itemStack.getItem() == Items.SHEARS) {
+                        rightButton(X + deltaX + 0.5, Y + deltaY + 0.5, Z + deltaZ + 0.5, Direction.UP, pos, hand);
                         return;
-                    } else if (itemStack.isIn(ItemTags.AXES)) {
-                        // 给木头去皮
-                        performStripAction(mutablePos, hand);
+                    }
+                    //去皮
+                    if ((CropManager.isWood(w, pos)) && itemStack.isIn(ItemTags.AXES)){
+                        rightButton(X + deltaX + 0.5, Y + deltaY + 0.5, Z + deltaZ + 0.5, Direction.UP, pos, hand);
                         return;
                     }
                 }
@@ -254,74 +226,46 @@ public class TickListener {
         }
     }
 
-    private void performStripAction(BlockPos pos, Hand hand) {
-        double x = pos.getX() + 0.5;
-        double y = pos.getY() + 0.5;
-        double z = pos.getZ() + 0.5;
-        rightButton(x, y, z, Direction.UP, pos, hand);
-    }
 
     /* 收获所有成熟作物 */
     private void harvestTick() {
-        World world = p.getWorld();
+        World w = p.getWorld();
         int radius = configure.effect_radius.value;
-        Vec3d posVec = p.getPos();
-        int centerX = (int) Math.floor(posVec.x);
-        int centerY = (int) Math.floor(posVec.y + 0.2D);// the "leg block", in case in soul sand
-        int centerZ = (int) Math.floor(posVec.z);
-
-        // 使用可变位置减少对象创建
-        BlockPos.Mutable mutablePos = new BlockPos.Mutable();
-
-        ClientPlayerInteractionManager interactionManager = MinecraftClient.getInstance().interactionManager;
-
-        for (int dy = -1; dy <= 1; dy++) {
-            int y = centerY + dy;
-            for (int dx = -radius; dx <= radius; dx++) {
-                for (int dz = -radius; dz <= radius; dz++) {
-                    mutablePos.set(centerX + dx, y, centerZ + dz);
-
-                    if (!canReachBlock(p, mutablePos)) continue;
-
-                    BlockState state = world.getBlockState(mutablePos);
+        int X = (int) Math.floor(p.getX());
+        int Y = (int) Math.floor(p.getY() + 0.2D);// the "leg block", in case in soul sand
+        int Z = (int) Math.floor(p.getZ());
+        for (int deltaX = -radius; deltaX <= radius; ++deltaX) {
+            for (int deltaZ = -radius; deltaZ <= radius; ++deltaZ) {
+                for (int deltaY = -1; deltaY <= 1; ++deltaY) {
+                    BlockPos pos = new BlockPos(X + deltaX, Y + deltaY, Z + deltaZ);
+                    BlockState state = w.getBlockState(pos);
                     Block block = state.getBlock();
-
-                    // 检查作物是否成熟
-                    if (!CropManager.isCropMature(world, mutablePos, state, block)) continue;
-
-                    // 特殊处理甜浆果丛
-                    if (block == Blocks.SWEET_BERRY_BUSH) {
-                        double clickY = y - 0.5;  // 特殊点击位置
-                        rightButton(centerX + dx + 0.5, clickY, centerZ + dz + 0.5, Direction.UP, mutablePos.toImmutable(), Hand.MAIN_HAND);
-                        return;
-                    }
-
-                    // 处理需要破坏进度的作物（如竹子、南瓜、西瓜）
-                    if (CropManager.needBreakingProgress(state)) {
-                        if (interactionManager != null) {
-                            interactionManager.updateBlockBreakingProgress(mutablePos.toImmutable(), Direction.UP);
+                    if (CropManager.isCropMature(w, pos, state, block)) {
+                        if (block == Blocks.SWEET_BERRY_BUSH) {
+                            rightButton(X + deltaX + 0.5, Y + deltaY - 0.5, Z + deltaZ + 0.5, Direction.UP, pos, Hand.MAIN_HAND);
+                        } else if (CropManager.needBreakingProgress(state)) {
+                            assert MinecraftClient.getInstance().interactionManager != null;
+                            MinecraftClient.getInstance().interactionManager.updateBlockBreakingProgress(pos, Direction.UP);
+                        } else {
+                            leftButton(pos, Direction.UP);
                         }
                         return;
                     }
-
-                    // 普通作物直接左键收获
-                    leftButton(mutablePos.toImmutable());
-                    return;
                 }
             }
         }
     }
 
-//    private void minusOneInHand() {
-//        ItemStack st = p.getMainHandStack();
-//        if (st != null) {
-//            if (st.getCount() <= 1) {
-//                p.setStackInHand(Hand.MAIN_HAND, ItemStack.EMPTY);
-//            } else {
-//                st.setCount(st.getCount() - 1);
-//            }
-//        }
-//    }
+    private void minusOneInHand() {
+        ItemStack st = p.getMainHandStack();
+        if (st != null) {
+            if (st.getCount() <= 1) {
+                p.setStackInHand(Hand.MAIN_HAND, ItemStack.EMPTY);
+            } else {
+                st.setCount(st.getCount() - 1);
+            }
+        }
+    }
 
     /* 查找背包内物品 */
     private ItemStack tryFillItemInHand() {
@@ -360,88 +304,90 @@ public class TickListener {
 
     /* 种植 */
     private void plantTick(ItemStack itemStack, Hand hand) {
-        if (CropManager.isCocoa(itemStack)) {
-            plantCocoaTick();
-            return;
-        }
+        if (CropManager.isCocoa(itemStack)) plantCocoaTick();
         if (lastUsedItem == null && !CropManager.isSeed(itemStack)) return;
         if (configure.tryFillItems.value) itemStack = tryFillItemInHand();
 
         World w = p.getWorld();
         int radius = configure.effect_radius.value;
-        Vec3d posVec = p.getPos();
-        int X = (int) Math.floor(posVec.x);
-        int Y = (int) Math.floor(posVec.y + 0.2D);// the "leg block" , in case in soul sand
-        int Z = (int) Math.floor(posVec.z);
+        int X = (int) Math.floor(p.getX());
+        int Y = (int) Math.floor(p.getY() + 0.2D);// the "leg block" , in case in soul sand
+        int Z = (int) Math.floor(p.getZ());
 
-        BlockPos.Mutable mutablePos = new BlockPos.Mutable();
-        for (int dx = -radius; dx <= radius; dx++) {
-            for (int dz = -radius; dz <= radius; dz++) {
-                // 设置目标位置（玩家脚下方块层）
-                mutablePos.set(X + dx, Y, Z + dz);
-                BlockState targetState = w.getBlockState(mutablePos);
-
-                if (!CropManager.canPaint(targetState, itemStack)) continue;
-                if (!CropManager.canPlantOn(itemStack.getItem(), w, mutablePos)) continue;
-
-                BlockPos downPos = mutablePos.down();
-                if (w.getBlockState(downPos).getBlock() == Blocks.KELP) continue;
-
-                // 执行种植动作
-                lastUsedItem = itemStack.copy();
-                double clickX = X + dx + 0.5;
-                double clickZ = Z + dz + 0.5;
-
-                rightButton(clickX, Y, clickZ, Direction.UP, downPos, hand);
-                return;
+        for (int deltaX = -radius; deltaX <= radius; ++deltaX)
+            for (int deltaZ = -radius; deltaZ <= radius; ++deltaZ) {
+                BlockPos pos = new BlockPos(X + deltaX, Y, Z + deltaZ);
+                if (!CropManager.canPaint(w.getBlockState(pos), itemStack))
+                    continue;
+                if (CropManager.canPlantOn(itemStack.getItem(), w, pos)) {
+                    if (w.getBlockState(pos.down()).getBlock() == Blocks.KELP)
+                        continue;
+                    lastUsedItem = itemStack.copy();
+                    assert MinecraftClient.getInstance().interactionManager != null;
+                    BlockPos downPos = pos.down();
+                    rightButton(X + deltaX + 0.5, Y, Z + deltaZ + 0.5, Direction.UP, downPos, hand);
+                    minusOneInHand();
+                    return;
+                }
             }
-        }
     }
 
     /* 可可豆种植 */
     private void plantCocoaTick() {
-        ItemStack handItem = p.getMainHandStack();
-        if (!CropManager.isCocoa(handItem)) {
-            if (configure.tryFillItems.value) {
-                handItem = tryFillItemInHand();
-            }
-            if (handItem == null || !CropManager.isCocoa(handItem)) return;
-        }
+        ItemStack mhand = p.getMainHandStack();
+        if (!CropManager.isCocoa(mhand)) return;
+        if (configure.tryFillItems.value) mhand = tryFillItemInHand();
 
-        World world = p.getWorld();
+        World w = p.getWorld();
         int radius = configure.effect_radius.value;
-        Vec3d posVec = p.getPos();
-        int X = (int) Math.floor(posVec.x);
-        int Y = (int) Math.floor(posVec.y + 0.2D);// the "leg block" , in case in soul sand
-        int Z = (int) Math.floor(posVec.z);
+        int X = (int) Math.floor(p.getX());
+        int Y = (int) Math.floor(p.getY() + 0.2D);// the "leg block" , in case in soul sand
+        int Z = (int) Math.floor(p.getZ());
 
-        Direction[] directions = {Direction.EAST, Direction.WEST, Direction.SOUTH, Direction.NORTH};
+        for (int deltaX = -radius; deltaX <= radius; ++deltaX) {
+            for (int deltaZ = -radius; deltaZ <= radius; ++deltaZ) {
+                for (int deltaY = 0; deltaY <= 7; ++deltaY) {
+                    BlockPos pos = new BlockPos(X + deltaX, Y + deltaY, Z + deltaZ);
+                    if (!canReachBlock(p, pos)) continue;
+                    BlockState jungleBlock = w.getBlockState(pos);
+                    if (CropManager.isJungleLog(jungleBlock)) {
+                        BlockPos tmpPos;
 
-        for (int dy = 0; dy <= 7; dy++) {
-            for (int dx = -radius; dx <= radius; dx++) {
-                for (int dz = -radius; dz <= radius; dz++) {
-                    BlockPos logPos = new BlockPos(X + dx, Y + dy, Z + dz);
+                        Direction tmpFace = Direction.EAST;
+                        tmpPos = pos.add(tmpFace.getVector());
+                        if (mhand != null && w.getBlockState(tmpPos).getBlock() == Blocks.AIR) {
+                            lastUsedItem = mhand.copy();
+                            rightButton(X + deltaX + 1, Y + deltaY + 0.5, Z + deltaZ + 0.5, tmpFace, pos, Hand.MAIN_HAND);
+                            minusOneInHand();
+                            return;
+                        }
 
-                    // 提前终止条件：不可到达或非丛林原木
-                    if (!canReachBlock(p, logPos)) continue;
-                    if (!CropManager.isJungleLog(world.getBlockState(logPos))) continue;
+                        tmpFace = Direction.WEST;
+                        tmpPos = pos.add(tmpFace.getVector());
+                        if (mhand != null && w.getBlockState(tmpPos).getBlock() == Blocks.AIR) {
+                            lastUsedItem = mhand.copy();
+                            rightButton(X + deltaX, Y + deltaY + 0.5, Z + deltaZ + 0.5, tmpFace, pos, Hand.MAIN_HAND);
+                            minusOneInHand();
+                            return;
+                        }
 
-                    // 检查所有可种植方向
-                    for (Direction dir : directions) {
-                        BlockPos plantPos = logPos.offset(dir);
+                        tmpFace = Direction.SOUTH;
+                        tmpPos = pos.add(tmpFace.getVector());
+                        if (mhand != null && w.getBlockState(tmpPos).getBlock() == Blocks.AIR) {
+                            lastUsedItem = mhand.copy();
+                            rightButton(X + deltaX + 0.5, Y + deltaY + 0.5, Z + deltaZ + 1, tmpFace, pos, Hand.MAIN_HAND);
+                            minusOneInHand();
+                            return;
+                        }
 
-                        // 跳过非空气方块
-                        if (!world.getBlockState(plantPos).isAir()) continue;
-
-                        // 计算点击坐标（中心点偏移）
-                        double clickX = plantPos.getX() + 0.5;
-                        double clickY = plantPos.getY() + 0.5;
-                        double clickZ = plantPos.getZ() + 0.5;
-
-                        // 执行种植动作
-                        lastUsedItem = handItem.copy();
-                        rightButton(clickX, clickY, clickZ, dir, logPos, Hand.MAIN_HAND);
-                        return;
+                        tmpFace = Direction.NORTH;
+                        tmpPos = pos.add(tmpFace.getVector());
+                        if (mhand != null && w.getBlockState(tmpPos).getBlock() == Blocks.AIR) {
+                            lastUsedItem = mhand.copy();
+                            rightButton(X + deltaX + 0.5, Y + deltaY + 0.5, Z + deltaZ, tmpFace, pos, Hand.MAIN_HAND);
+                            minusOneInHand();
+                            return;
+                        }
                     }
                 }
             }
@@ -457,6 +403,7 @@ public class TickListener {
         return d3 <= 36D;
     }
 
+
     /* 动物喂养 */
     private void feedTick() {
         ItemStack handItem = p.getMainHandStack();
@@ -464,95 +411,83 @@ public class TickListener {
         if (handItem == null) return;
 
         int radius = configure.effect_radius.value;
-        Vec3d posVec = p.getPos();
 
-        Box box = new Box(posVec.x - radius, posVec.y - radius,
-                            posVec.z - radius, posVec.x + radius,
-                            posVec.y + radius, posVec.z + radius);
-        if (handItem.isOf(Items.SHEARS)) processShearing(handItem, box);
-        else if (handItem.isOf(Items.AMETHYST_SHARD)) processAllayFeeding(handItem, box);
-        else if (handItem.isOf(Items.TROPICAL_FISH_BUCKET)) feedAxolotTick();
-        else processAnimalFeeding(handItem, box);
-    }
-
-    private void processAllayFeeding(ItemStack handItem, Box box) {
-        // 只有紫水晶碎片可以喂养悦灵
-        if (handItem.getItem() != Items.AMETHYST_SHARD) return;
-
-        Collection<Class<? extends AllayEntity>> allayTypes =
-                CropManager.ALLAY_MAP.get(handItem.getItem());
-
-        for (Class<? extends AllayEntity> type : allayTypes) {
-            for (AllayEntity entity : p.getWorld().getEntitiesByClass(
-                    type, box, CropManager::isFeedableAllay)) {
-                interactWithEntity(handItem, entity);
+        // if (animalList.isEmpty()) return;
+        Box box = new Box(p.getX() - radius, p.getY() - radius,
+                            p.getZ() - radius, p.getX() + radius,
+                            p.getY() + radius, p.getZ() + radius);
+        // 剪羊毛
+        Collection<Class<? extends AnimalEntity>> needShearAnimalList = CropManager.SHEAR_MAP.get(handItem.getItem());
+        for (Class<? extends AnimalEntity> type : needShearAnimalList) {
+            for (AnimalEntity e : p.getWorld().getEntitiesByClass(
+                    type,
+                    box,
+                    animalEntity -> {
+                        if (animalEntity instanceof SheepEntity) {
+                            return !animalEntity.isBaby() && !((SheepEntity) animalEntity).isSheared();
+                        }
+                        return false;
+                    })) {
+                lastUsedItem = handItem.copy();
+                assert MinecraftClient.getInstance().interactionManager != null;
+                MinecraftClient.getInstance().interactionManager.interactEntity(p, e, Hand.MAIN_HAND);
                 return;
             }
         }
-    }
-
-    private void processShearing(ItemStack handItem, Box box) {
-        // 只有剪刀可以剪羊毛
-        if (handItem.getItem() != Items.SHEARS) return;
-
-        Collection<Class<? extends AnimalEntity>> shearableTypes =
-                CropManager.SHEAR_MAP.get(handItem.getItem());
-
-        for (Class<? extends AnimalEntity> type : shearableTypes) {
-            for (AnimalEntity entity : p.getWorld().getEntitiesByClass(
-                    type, box, CropManager::isShearable)) {
-                interactWithEntity(handItem, entity);
+        // 繁殖悦灵
+        Collection<Class<? extends AllayEntity>> feedAllayList = CropManager.ALLAY_MAP.get(handItem.getItem());
+        for (Class<? extends AllayEntity> type : feedAllayList) {
+            for (AllayEntity e : p.getWorld().getEntitiesByClass(
+                    type,
+                    box,
+                    allayEntity -> !allayEntity.isHoldingItem() && allayEntity.isDancing())) {
+                lastUsedItem = handItem.copy();
+                assert MinecraftClient.getInstance().interactionManager != null;
+                MinecraftClient.getInstance().interactionManager.interactEntity(p, e, Hand.MAIN_HAND);
+                minusOneInHand();
                 return;
             }
         }
-    }
-
-    /* 普通动物喂养处理 */
-    private void processAnimalFeeding(ItemStack handItem, Box box) {
-        Collection<Class<? extends AnimalEntity>> animalTypes =
-                CropManager.FEED_MAP.get(handItem.getItem());
-
-        for (Class<? extends AnimalEntity> type : animalTypes) {
-            for (AnimalEntity entity : p.getWorld().getEntitiesByClass(type, box, CropManager::isFeedableAnimal)) {
-
-                interactWithEntity(handItem, entity);
+        // 繁殖普通动物
+        Collection<Class<? extends AnimalEntity>> needFeedAnimalList = CropManager.FEED_MAP.get(handItem.getItem());
+        for (Class<? extends AnimalEntity> type : needFeedAnimalList) {
+            for (AnimalEntity e : p.getWorld().getEntitiesByClass(
+                    type,
+                    box,
+                    animalEntity -> animalEntity.getBreedingAge() >= 0 && animalEntity.canEat())) {
+                lastUsedItem = handItem.copy();
+                assert MinecraftClient.getInstance().interactionManager != null;
+                MinecraftClient.getInstance().interactionManager.interactEntity(p, e, Hand.MAIN_HAND);
+                minusOneInHand();
+                return;
             }
         }
-    }
-
-    private void interactWithEntity(ItemStack handItem, Entity entity) {
-        lastUsedItem = handItem.copy();
-        assert MinecraftClient.getInstance().interactionManager != null;
-        MinecraftClient.getInstance().interactionManager.interactEntity(p, entity, Hand.MAIN_HAND);
     }
 
     // 繁殖美西螈
-    private void feedAxolotTick() {
+    private  void feedAxolotTick() {
         ItemStack mainHandItem = p.getMainHandStack();
         ItemStack handItem = mainHandItem;
         if (configure.tryFillItems.value) handItem = tryFillItemInHand();
-        if (handItem == null || !handItem.isOf(Items.TROPICAL_FISH_BUCKET)) return;
+        if (handItem == null || handItem.isOf(Items.WATER_BUCKET)) return;
 
         int radius = configure.effect_radius.value;
-        Vec3d playerPos = p.getPos();
-        Box searchBox = new Box(playerPos.x - radius, playerPos.y - radius, playerPos.z - radius,
-                            playerPos.x + radius, playerPos.y + radius, playerPos.z + radius);
+        Box box = new Box(p.getX() - radius, p.getY() - radius,
+                p.getZ() - radius, p.getX() + radius,
+                p.getY() + radius, p.getZ() + radius);
 
-        World world = p.getWorld();
-        List<AnimalEntity> feedableAxolotls = new ArrayList<>();
-
-        for (Class<? extends AnimalEntity> type : CropManager.AXOLOT_MAP.get(Items.TROPICAL_FISH_BUCKET)) {
-            world.getEntitiesByClass(type, searchBox, CropManager::isFeedableAnimal)
-                    .forEach(feedableAxolotls::add);
-        }
-
-        for (AnimalEntity axolotl : feedableAxolotls) {
-            // 检查实体是否仍然有效（避免tick间的状态变化）
-            if (!axolotl.isAlive() || !CropManager.isFeedableAnimal(axolotl)) continue;
-            if (mainHandItem.isOf(Items.TROPICAL_FISH_BUCKET)) {
-            // 执行交互
-                interactWithEntity(handItem, axolotl);
-                return;  // 成功繁殖后立即返回
+        Collection<Class<? extends AnimalEntity>> AxolotList = CropManager.AXOLOT_MAP.get(handItem.getItem());
+        for (Class<? extends AnimalEntity> type : AxolotList) {
+            for (AnimalEntity e : p.getWorld().getEntitiesByClass(
+                    type,
+                    box,
+                    animalEntity -> animalEntity.getBreedingAge() >= 0 && animalEntity.canEat())) {
+                if (mainHandItem.isOf(Items.TROPICAL_FISH_BUCKET)) {
+                    lastUsedItem = handItem.copy();
+                    assert MinecraftClient.getInstance().interactionManager != null;
+                    MinecraftClient.getInstance().interactionManager.interactEntity(p, e, Hand.MAIN_HAND);
+                    break;
+                }
             }
         }
     }
@@ -607,13 +542,17 @@ public class TickListener {
                 if (fishBitesAt == 0 && isFishBites(p)) {
                     fishBitesAt = getWorldTime();
                     assert MinecraftClient.getInstance().interactionManager != null;
-                    MinecraftClient.getInstance().interactionManager.interactItem(p, Hand.MAIN_HAND);
+                    MinecraftClient.getInstance().interactionManager.interactItem(
+                            p,
+                            Hand.MAIN_HAND);
                 }
 
                 /* Cast */
                 if (fishBitesAt != 0 && fishBitesAt + 20 <= getWorldTime()) {
                     assert MinecraftClient.getInstance().interactionManager != null;
-                    MinecraftClient.getInstance().interactionManager.interactItem(p, Hand.MAIN_HAND);
+                    MinecraftClient.getInstance().interactionManager.interactItem(
+                            p,
+                            Hand.MAIN_HAND);
                     fishBitesAt = 0;
                 }
                 break;
@@ -631,25 +570,42 @@ public class TickListener {
         if (handItem == null || !CropManager.isBoneMeal(handItem)) return;
 
         int radius = configure.effect_radius.value;
-        World w = p.getWorld();
-        BlockPos playerPos = new BlockPos(p.getBlockPos());
 
-        Vec3d posVec = p.getPos();
-        int X = (int) Math.floor(posVec.x);
-        int Y = (int) Math.floor(posVec.y);
-        int Z = (int) Math.floor(posVec.z);
+        World w = p.getWorld();
+        int X = (int) Math.floor(p.getX());
+        int Y = (int) Math.floor(p.getY());
+        int Z = (int) Math.floor(p.getZ());
         for (int deltaY = 3; deltaY >= -2; --deltaY) {
             for (int deltaX = -radius; deltaX <= radius; ++deltaX) {
                 for (int deltaZ = -radius; deltaZ <= radius; ++deltaZ) {
-                    BlockPos targetPos = playerPos.add(deltaX, deltaY, deltaZ);
-                    BlockState state = w.getBlockState(targetPos);
-                    if (state.getBlock() instanceof GrassBlock) {
-                        continue; // 跳过草方块
+                    BlockPos pos = new BlockPos(X + deltaX, Y + deltaY, Z + deltaZ);
+                    BlockState blockState = w.getBlockState(pos);
+                    Block block = blockState.getBlock();
+                    // 催熟瓶子草
+                    if (block instanceof PitcherCropBlock){
+                        if (((PitcherCropBlock) block).isFertilizable(w, pos, blockState)) {
+                            lastUsedItem = handItem.copy();
+                            rightButton(X + deltaX + 0.5, Y + deltaY + 0.5, Z + deltaZ + 0.5, Direction.UP, pos, Hand.MAIN_HAND);
+                            minusOneInHand();
+                            return;
+                        }
                     }
-                    if (CropManager.canBeBonemealed(w, targetPos)) {
-                        lastUsedItem = handItem.copy();
-                        rightButton(X + deltaX + 0.5, Y + deltaY + 0.5, Z + deltaZ + 0.5, Direction.UP, targetPos, Hand.MAIN_HAND);
-                        return;
+                    // 催熟可可豆
+                    if (block instanceof CocoaBlock) {
+                        if (((CocoaBlock) block).isFertilizable(w, pos, blockState)) {
+                            lastUsedItem = handItem.copy();
+                            rightButton(X + deltaX + 0.5, Y + deltaY + 0.5, Z + deltaZ + 0.5, Direction.UP, pos, Hand.MAIN_HAND);
+                            minusOneInHand();
+                            return;
+                        }
+                    }
+                    if (block instanceof CropBlock) {
+                        if (((CropBlock) block).isFertilizable(w, pos, blockState)) {
+                            lastUsedItem = handItem.copy();
+                            rightButton(X + deltaX + 0.5, Y + deltaY + 0.5, Z + deltaZ + 0.5, Direction.UP, pos, Hand.MAIN_HAND);
+                            minusOneInHand();
+                            return;
+                        }
                     }
                 }
             }
