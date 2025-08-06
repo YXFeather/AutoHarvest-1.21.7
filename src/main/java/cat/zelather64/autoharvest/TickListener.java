@@ -66,13 +66,10 @@ public class TickListener {
             switch (AutoHarvest.instance.mode) {
                 case SEED -> weedTick();
                 case HARVEST -> harvestTick();
-                case PLANT ->
-//                    offplantTick();
-                    mainPlantTick();
+                case PLANT -> mainPlantTick();
 
                 case Farmer -> {
                     harvestTick();
-//                    offplantTick();
                     mainPlantTick();
                 }
                 case FEED -> {
