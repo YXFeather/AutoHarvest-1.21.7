@@ -74,7 +74,7 @@ public class TickListener {
                 }
                 case FEED -> {
                     feedTick();
-                    feedAxolotTick();
+//                    feedAxolotTick();
                 }
                 case FISHING -> fishingTick();
                 case BONEMEALING -> bonemealingTick();
@@ -530,28 +530,21 @@ public class TickListener {
         ItemStack mainHandItem = p.getMainHandStack();
         ItemStack handItem = mainHandItem;
         if (configure.tryFillItems.value) handItem = tryFillItemInHand();
-        if (handItem == null || !handItem.isOf(Items.TROPICAL_FISH_BUCKET)) return;
+        if (handItem == null || handItem.isOf(Items.WATER_BUCKET)) return;
 
         int radius = configure.effect_radius.value;
-        Vec3d playerPos = p.getPos();
-        Box searchBox = new Box(playerPos.x - radius, playerPos.y - radius, playerPos.z - radius,
-                playerPos.x + radius, playerPos.y + radius, playerPos.z + radius);
+        Box box = new Box(p.getX() - radius, p.getY() - radius,
+                p.getZ() - radius, p.getX() + radius,
+                p.getY() + radius, p.getZ() + radius);
 
-        World world = p.getWorld();
-        List<AnimalEntity> feedableAxolotls = new ArrayList<>();
-
-        for (Class<? extends AnimalEntity> type : CropManager.AXOLOT_MAP.get(Items.TROPICAL_FISH_BUCKET)) {
-            world.getEntitiesByClass(type, searchBox, CropManager::isFeedableAnimal)
-                    .forEach(feedableAxolotls::add);
-        }
-
-        for (AnimalEntity axolotl : feedableAxolotls) {
-            // 检查实体是否仍然有效（避免tick间的状态变化）
-            if (!axolotl.isAlive() || !CropManager.isFeedableAnimal(axolotl)) continue;
-            if (mainHandItem.isOf(Items.TROPICAL_FISH_BUCKET)) {
-                // 执行交互
-                interactWithEntity(handItem, axolotl);
-                return;  // 成功繁殖后立即返回
+        Collection<Class<? extends AnimalEntity>> AxolotList = CropManager.AXOLOT_MAP.get(handItem.getItem());
+        for (Class<? extends AnimalEntity> type : AxolotList) {
+            for (AnimalEntity e : p.getWorld().getEntitiesByClass(type, box, CropManager::isFeedableAnimal)) {
+                if (mainHandItem.isOf(Items.TROPICAL_FISH_BUCKET)) {
+                    lastUsedItem = handItem.copy();
+                    interactWithEntity(handItem, e);
+                    return;
+                }
             }
         }
     }
