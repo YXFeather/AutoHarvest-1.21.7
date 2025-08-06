@@ -204,12 +204,14 @@ public class CropManager {
 
         // 1.17
         FEED_MAP.put(Items.WHEAT, GoatEntity.class);//山羊
+        // 1.19
+        FEED_MAP.put(Items.TORCHFLOWER_SEEDS,SnifferEntity.class);//嗅探兽
+        FEED_MAP.put(Items.CACTUS, CamelEntity.class);//骆驼
 
         // disabled due to complexity of interaction
         AXOLOT_MAP = ArrayListMultimap.create();
         AXOLOT_MAP.put(Items.TROPICAL_FISH_BUCKET, AxolotlEntity.class);
 
-        FEED_MAP.put(Items.TORCHFLOWER_SEEDS,SnifferEntity.class);//嗅探兽
 
         //剪羊毛
         SHEAR_MAP = ArrayListMultimap.create();
@@ -220,6 +222,12 @@ public class CropManager {
         ALLAY_MAP.put(Items.AMETHYST_SHARD, AllayEntity.class);
     }
 
+    public static final Set<Block> tillableBlocks = Set.of(
+            Blocks.DIRT,
+            Blocks.GRASS_BLOCK,
+            Blocks.COARSE_DIRT,
+            Blocks.ROOTED_DIRT
+    );
 
     public static boolean isWeedBlock(World w, BlockPos pos) {
         Block b = w.getBlockState(pos).getBlock();
@@ -304,5 +312,30 @@ public class CropManager {
     public static boolean needBreakingProgress(BlockState s) {
         return s.getBlock() == Blocks.COCOA || s.getBlock() == Blocks.BAMBOO ||
                 s.getBlock() == Blocks.PUMPKIN || s.getBlock() == Blocks.MELON;
+    }
+
+    public static boolean canBeBonemealed(World world, BlockPos pos) {
+        BlockState state = world.getBlockState(pos);
+        Block block = state.getBlock();
+
+        if (block instanceof Fertilizable fertilizable) {
+            return fertilizable.isFertilizable(world, pos, state);
+        }
+        return false;
+    }
+
+    public static boolean isShearable(AnimalEntity entity) {
+        if (entity instanceof SheepEntity sheep) {
+            return !sheep.isBaby() && !sheep.isSheared();
+        }
+        return false;
+    }
+
+    public static boolean isFeedableAllay(AllayEntity allay) {
+        return !allay.isHoldingItem() && allay.isDancing();
+    }
+
+    public static boolean isFeedableAnimal(AnimalEntity animal) {
+        return animal.getBreedingAge() >= 0 && animal.canEat();
     }
 }
