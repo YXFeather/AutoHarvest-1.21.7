@@ -123,11 +123,8 @@ public class TickListener {
         BlockPos.Mutable mutablePos = new BlockPos.Mutable();
 
         boolean treatFlowersAsWeeds = AutoHarvest.instance.configure.flowerISseed.value;
-        // 定义垂直搜索范围（从高到低，3到-2）
-        final int minY = -2;
-        final int maxY = 3;
 
-        for (int dy = maxY; dy >= minY; dy--) {
+        for (int dy = 3; dy >= -2; dy--) {
             int y = centerY + dy;
 
             for (int dx = -radius; dx <= radius; dx++) {
@@ -276,13 +273,9 @@ public class TickListener {
 
         // 使用可变位置减少对象创建
         BlockPos.Mutable mutablePos = new BlockPos.Mutable();
-
-        // 定义垂直搜索范围（-1到+1）
-        final int minY = -1;
-        final int maxY = 1;
         ClientPlayerInteractionManager interactionManager = MinecraftClient.getInstance().interactionManager;
 
-        for (int dy = minY; dy <= maxY; dy++) {
+        for (int dy = -1; dy <= 1; dy++) {
             int y = centerY + dy;
             for (int dx = -radius; dx <= radius; dx++) {
                 for (int dz = -radius; dz <= radius; dz++) {
@@ -506,8 +499,7 @@ public class TickListener {
                 CropManager.SHEAR_MAP.get(handItem.getItem());
 
         for (Class<? extends AnimalEntity> type : shearableTypes) {
-            for (AnimalEntity entity : p.getWorld().getEntitiesByClass(
-                    type, box, CropManager::isShearable)) {
+            for (AnimalEntity entity : p.getWorld().getEntitiesByClass(type, box, CropManager::isShearable)) {
                 interactWithEntity(handItem, entity);
                 return;
             }
@@ -640,10 +632,10 @@ public class TickListener {
         int radius = configure.effect_radius.value;
         World w = p.getWorld();
         BlockPos playerPos = new BlockPos(p.getBlockPos());
-
-        int X = (int) Math.floor(p.getX());
-        int Y = (int) Math.floor(p.getY());
-        int Z = (int) Math.floor(p.getZ());
+        Vec3d posVec = p.getPos();
+        int X = (int) Math.floor(posVec.x);
+        int Y = (int) Math.floor(posVec.y);
+        int Z = (int) Math.floor(posVec.z);
         for (int deltaY = 3; deltaY >= -2; --deltaY) {
             for (int deltaX = -radius; deltaX <= radius; ++deltaX) {
                 for (int deltaZ = -radius; deltaZ <= radius; ++deltaZ) {
