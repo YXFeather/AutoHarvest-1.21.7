@@ -1,21 +1,18 @@
 package cat.zelather64.autoharvest;
 
-import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
-import com.google.common.collect.Multimap;
 import net.minecraft.block.*;
-import net.minecraft.entity.mob.HoglinEntity;
+import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.entity.passive.*;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Box;
 import net.minecraft.world.World;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
 
 public class CropManager {
@@ -141,85 +138,22 @@ public class CropManager {
                 }
             });
 
-    public static final Multimap<Item, Class<? extends AnimalEntity>> FEED_MAP;
-    public static final Multimap<Item, Class<? extends AllayEntity>> ALLAY_MAP; // 悦灵
-    public static final Multimap<Item, Class<? extends AnimalEntity>> AXOLOT_MAP; // 美西螈
-    public static final Multimap<Item, Class<? extends AnimalEntity>> SHEAR_MAP;
-    static {
-        FEED_MAP = ArrayListMultimap.create();
-        FEED_MAP.put(Items.GOLDEN_CARROT, HorseEntity.class); //马
-        FEED_MAP.put(Items.COD, OcelotEntity.class); //豹猫
-        FEED_MAP.put(Items.SALMON, OcelotEntity.class);
-
-        FEED_MAP.put(Items.WHEAT, SheepEntity.class); //羊
-        FEED_MAP.put(Items.WHEAT, CowEntity.class); //牛
-        FEED_MAP.put(Items.WHEAT, MooshroomEntity.class); //蘑菇牛
-
-        FEED_MAP.put(Items.CARROT, PigEntity.class); //猪
-        FEED_MAP.put(Items.POTATO, PigEntity.class);
-        FEED_MAP.put(Items.BEETROOT, PigEntity.class);
-
-        FEED_MAP.put(Items.PUMPKIN_SEEDS, ChickenEntity.class); //鸡
-        FEED_MAP.put(Items.MELON_SEEDS, ChickenEntity.class);
-        FEED_MAP.put(Items.WHEAT_SEEDS, ChickenEntity.class);
-        FEED_MAP.put(Items.BEETROOT_SEEDS, ChickenEntity.class);
-
-        FEED_MAP.put(Items.ROTTEN_FLESH, WolfEntity.class); //狼
-
-        FEED_MAP.put(Items.DANDELION, RabbitEntity.class); //兔子
-        FEED_MAP.put(Items.CARROT, RabbitEntity.class);
-        FEED_MAP.put(Items.WHEAT_SEEDS, ParrotEntity.class); //鹦鹉
-
-        // 1.13
-        FEED_MAP.put(Items.SEAGRASS, TurtleEntity.class); //海龟
-
-        // 1.14
-        FEED_MAP.put(Items.BAMBOO, PandaEntity.class); //熊猫
-        FEED_MAP.put(Items.SWEET_BERRIES, FoxEntity.class); //狐狸
-        FEED_MAP.put(Items.COD, CatEntity.class); //猫
-        FEED_MAP.put(Items.SALMON, CatEntity.class);
-
-        // 1.15
-        FEED_MAP.put(Items.DANDELION, BeeEntity.class); //蜜蜂
-        FEED_MAP.put(Items.POPPY, BeeEntity.class);
-        FEED_MAP.put(Items.BLUE_ORCHID, BeeEntity.class);
-        FEED_MAP.put(Items.ALLIUM, BeeEntity.class);
-        FEED_MAP.put(Items.AZURE_BLUET, BeeEntity.class);
-        FEED_MAP.put(Items.RED_TULIP, BeeEntity.class);
-        FEED_MAP.put(Items.ORANGE_TULIP, BeeEntity.class);
-        FEED_MAP.put(Items.WHITE_TULIP, BeeEntity.class);
-        FEED_MAP.put(Items.PINK_TULIP, BeeEntity.class);
-        FEED_MAP.put(Items.OXEYE_DAISY, BeeEntity.class);
-        FEED_MAP.put(Items.CORNFLOWER, BeeEntity.class);
-        FEED_MAP.put(Items.LILY_OF_THE_VALLEY, BeeEntity.class);
-        FEED_MAP.put(Items.WITHER_ROSE, BeeEntity.class);
-        FEED_MAP.put(Items.SUNFLOWER, BeeEntity.class);
-        FEED_MAP.put(Items.LILAC, BeeEntity.class);
-        FEED_MAP.put(Items.ROSE_BUSH, BeeEntity.class);
-        FEED_MAP.put(Items.PEONY, BeeEntity.class);
-
-        // 1.16
-        FEED_MAP.put(Items.WARPED_FUNGUS, StriderEntity.class); //炽足兽
-        FEED_MAP.put(Items.CRIMSON_FUNGUS, HoglinEntity.class); //犹猪兽
-
-        // 1.17
-        FEED_MAP.put(Items.WHEAT, GoatEntity.class);//山羊
-        // 1.19
-        FEED_MAP.put(Items.TORCHFLOWER_SEEDS,SnifferEntity.class);//嗅探兽
-        FEED_MAP.put(Items.CACTUS, CamelEntity.class);//骆驼
-
-        // disabled due to complexity of interaction
-        AXOLOT_MAP = ArrayListMultimap.create();
-        AXOLOT_MAP.put(Items.TROPICAL_FISH_BUCKET, AxolotlEntity.class);
-
-
-        //剪羊毛
-        SHEAR_MAP = ArrayListMultimap.create();
-        SHEAR_MAP.put(Items.SHEARS, SheepEntity.class);
-
-        //繁殖悦灵
-        ALLAY_MAP = ArrayListMultimap.create();
-        ALLAY_MAP.put(Items.AMETHYST_SHARD, AllayEntity.class);
+    public static List<AnimalEntity> getFeedableAnimals(ClientPlayerEntity p, Box box, ItemStack handItem) {
+        return p.getWorld().getEntitiesByClass(
+            AnimalEntity.class, box, animal -> {
+                // 实体有效、存活且不是美西螈
+                if (animal == null || !animal.isAlive() || animal instanceof AxolotlEntity) {
+                    return false;
+                }
+                // 手上是剪刀时剪羊毛
+                if (handItem.isOf(Items.SHEARS)) {
+                    // 剪羊毛：必须是未剪毛的成年绵羊
+                    return animal instanceof SheepEntity sheep && !sheep.isSheared() && !sheep.isBaby();
+                }
+                // 喂养普通动物
+                return animal.canEat() && animal.isBreedingItem(handItem) && animal.getBreedingAge() >= 0;
+            }
+        );
     }
 
     public static final Set<Block> tillableBlocks = Set.of(
@@ -276,8 +210,7 @@ public class CropManager {
     }
 
     public static boolean isSeed(ItemStack stack) {
-        return (!stack.isEmpty()
-                && SEED_MAP.containsValue(stack.getItem()));
+        return (!stack.isEmpty() && SEED_MAP.containsValue(stack.getItem()));
     }
 
     public static boolean isCocoa(ItemStack stack) {
@@ -303,10 +236,13 @@ public class CropManager {
                 && stack.getItem() == Items.FISHING_ROD);
     }
 
-    public static boolean canPlantOn(Item m, World w, BlockPos p) {
-        if (!SEED_MAP.containsValue(m))
+    public static boolean canPlantOn(Item m, World w, BlockPos pos, BlockPos downPos) {
+        if (w.getBlockState(downPos).getBlock() == REED_BLOCK || w.getBlockState(downPos).getBlock() == BAMBOO ||
+                (w.getBlockState(downPos).getBlock() == KELP || w.getBlockState(downPos).getBlock() == KELP_PLANT)) {
             return false;
-        return SEED_MAP.inverse().get(m).getDefaultState().canPlaceAt(w, p);
+        }
+        if (!SEED_MAP.containsValue(m)) return false;
+        return SEED_MAP.inverse().get(m).getDefaultState().canPlaceAt(w, pos);
     }
 
     public static boolean needBreakingProgress(BlockState s) {
@@ -322,20 +258,5 @@ public class CropManager {
             return fertilizable.isFertilizable(world, pos, state);
         }
         return false;
-    }
-
-    public static boolean isShearable(AnimalEntity entity) {
-        if (entity instanceof SheepEntity sheep) {
-            return !sheep.isBaby() && !sheep.isSheared();
-        }
-        return false;
-    }
-
-    public static boolean isFeedableAllay(AllayEntity allay) {
-        return !allay.isHoldingItem() && allay.isDancing();
-    }
-
-    public static boolean isFeedableAnimal(AnimalEntity animal) {
-        return animal.getBreedingAge() >= 0 && animal.canEat();
     }
 }

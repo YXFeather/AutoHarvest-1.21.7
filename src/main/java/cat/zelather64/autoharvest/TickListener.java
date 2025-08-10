@@ -8,6 +8,7 @@ import net.minecraft.client.network.ClientPlayerInteractionManager;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.passive.AllayEntity;
 import net.minecraft.entity.passive.AnimalEntity;
+import net.minecraft.entity.passive.AxolotlEntity;
 import net.minecraft.entity.passive.SheepEntity;
 import net.minecraft.entity.projectile.FishingBobberEntity;
 import net.minecraft.item.ItemStack;
@@ -23,8 +24,6 @@ import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 
 public class TickListener {
@@ -110,7 +109,7 @@ public class TickListener {
         MinecraftClient.getInstance().interactionManager.interactBlock(MinecraftClient.getInstance().player, hand, blockHitResult);
     }
 
-    /* clear all grass on land */
+    /* 除草 */
     private void weedTick() {
         World world = p.getWorld();
         int radius = configure.effect_radius.value;
@@ -172,10 +171,15 @@ public class TickListener {
 
         // 使用可变位置减少对象创建
         BlockPos.Mutable mutablePos = new BlockPos.Mutable();
+        BlockPos.Mutable abovePos = new BlockPos.Mutable();
 
         for (int dx = -radius; dx <= radius; dx++) {
             for (int dz = -radius; dz <= radius; dz++) {
                 mutablePos.set(centerX + dx, centerY, centerZ + dz);
+                abovePos.set(mutablePos).move(Direction.UP);
+                BlockState aboveState = world.getBlockState(abovePos);
+                if (!aboveState.isAir()) continue;
+
                 BlockState state = world.getBlockState(mutablePos);
                 Block block = state.getBlock();
 
@@ -243,23 +247,16 @@ public class TickListener {
 
                     if (itemStack.getItem() == Items.SHEARS) {
                         // 雕刻南瓜
-                        performStripAction(mutablePos, hand);
+                        rightButton(mutablePos.getX() + 0.5, mutablePos.getY() + 0.5, mutablePos.getZ() + 0.5, Direction.UP, mutablePos, hand);
                         return;
                     } else if (itemStack.isIn(ItemTags.AXES)) {
                         // 给木头去皮
-                        performStripAction(mutablePos, hand);
+                        rightButton(mutablePos.getX() + 0.5, mutablePos.getY() + 0.5, mutablePos.getZ() + 0.5, Direction.UP, mutablePos, hand);
                         return;
                     }
                 }
             }
         }
-    }
-
-    private void performStripAction(BlockPos pos, Hand hand) {
-        double x = pos.getX() + 0.5;
-        double y = pos.getY() + 0.5;
-        double z = pos.getZ() + 0.5;
-        rightButton(x, y, z, Direction.UP, pos, hand);
     }
 
     /* 收获所有成熟作物 */
@@ -380,12 +377,12 @@ public class TickListener {
                 // 设置目标位置（玩家脚下方块层）
                 mutablePos.set(X + dx, Y, Z + dz);
                 BlockState targetState = w.getBlockState(mutablePos);
+                BlockPos downPos = mutablePos.down();
 
                 if (!CropManager.canPaint(targetState, itemStack)) continue;
-                if (!CropManager.canPlantOn(itemStack.getItem(), w, mutablePos)) continue;
+                if (!CropManager.canPlantOn(itemStack.getItem(), w, mutablePos, downPos)) continue;
 
-                BlockPos downPos = mutablePos.down();
-                if (w.getBlockState(downPos).getBlock() == Blocks.KELP) continue;
+//                if (w.getBlockState(downPos).getBlock() == Blocks.KELP) continue;
 
                 // 执行种植动作
                 lastUsedItem = itemStack.copy();
@@ -465,56 +462,37 @@ public class TickListener {
 
         int radius = configure.effect_radius.value;
         Vec3d posVec = p.getPos();
-
         Box box = new Box(posVec.x - radius, posVec.y - radius,
                 posVec.z - radius, posVec.x + radius,
                 posVec.y + radius, posVec.z + radius);
-        if (handItem.isOf(Items.SHEARS)) processShearing(handItem, box);
-        else if (handItem.isOf(Items.AMETHYST_SHARD)) processAllayFeeding(handItem, box);
-        else if (handItem.isOf(Items.TROPICAL_FISH_BUCKET)) feedAxolotTick();
-        else processAnimalFeeding(handItem, box);
+
+        if (handItem.isOf(Items.AMETHYST_SHARD)) {
+            processAllayFeeding(box, handItem);
+        } else if (handItem.isOf(Items.TROPICAL_FISH_BUCKET)){
+            feedAxolotTick(box);
+        }else {processAnimals(box, handItem);}
     }
 
-    private void processAllayFeeding(ItemStack handItem, Box box) {
-        // 只有紫水晶碎片可以喂养悦灵
-        if (handItem.getItem() != Items.AMETHYST_SHARD) return;
-
-        Collection<Class<? extends AllayEntity>> allayTypes =
-                CropManager.ALLAY_MAP.get(handItem.getItem());
-
-        for (Class<? extends AllayEntity> type : allayTypes) {
-            for (AllayEntity entity : p.getWorld().getEntitiesByClass(
-                    type, box, CropManager::isFeedableAllay)) {
-                interactWithEntity(handItem, entity);
-                return;
-            }
-        }
-    }
-
-    private void processShearing(ItemStack handItem, Box box) {
-        // 只有剪刀可以剪羊毛
-        if (handItem.getItem() != Items.SHEARS) return;
-
-        Collection<Class<? extends AnimalEntity>> shearableTypes =
-                CropManager.SHEAR_MAP.get(handItem.getItem());
-
-        for (Class<? extends AnimalEntity> type : shearableTypes) {
-            for (AnimalEntity entity : p.getWorld().getEntitiesByClass(type, box, CropManager::isShearable)) {
-                interactWithEntity(handItem, entity);
-                return;
-            }
-        }
+    private void processAllayFeeding(Box box, ItemStack handItem) {
+        p.getWorld().getEntitiesByClass(AllayEntity.class, box, allay ->
+                allay != null && allay.isAlive() && !allay.isHoldingItem() && allay.isDancing()
+        ).forEach(allay -> {
+            lastUsedItem = handItem.copy();
+            interactWithEntity(handItem, allay);
+        });
     }
 
     /* 普通动物喂养处理 */
-    private void processAnimalFeeding(ItemStack handItem, Box box) {
-        Collection<Class<? extends AnimalEntity>> animalTypes =
-                CropManager.FEED_MAP.get(handItem.getItem());
-
-        for (Class<? extends AnimalEntity> type : animalTypes) {
-            for (AnimalEntity entity : p.getWorld().getEntitiesByClass(type, box, CropManager::isFeedableAnimal)) {
-
-                interactWithEntity(handItem, entity);
+    private void processAnimals(Box box, ItemStack handItem) {
+        for (AnimalEntity animal : CropManager.getFeedableAnimals(p, box, handItem)) {
+            if (handItem.isOf(Items.SHEARS) && animal instanceof SheepEntity sheep) {
+                lastUsedItem = handItem.copy();
+                interactWithEntity(handItem, sheep);
+                return; // 每次只处理一只动物
+            }
+            else {
+                lastUsedItem = handItem.copy();
+                interactWithEntity(handItem, animal);
             }
         }
     }
@@ -526,25 +504,21 @@ public class TickListener {
     }
 
     // 繁殖美西螈
-    private void feedAxolotTick() {
+    private void feedAxolotTick(Box box) {
         ItemStack mainHandItem = p.getMainHandStack();
         ItemStack handItem = mainHandItem;
         if (configure.tryFillItems.value) handItem = tryFillItemInHand();
         if (handItem == null || handItem.isOf(Items.WATER_BUCKET)) return;
 
-        int radius = configure.effect_radius.value;
-        Box box = new Box(p.getX() - radius, p.getY() - radius,
-                p.getZ() - radius, p.getX() + radius,
-                p.getY() + radius, p.getZ() + radius);
-
-        Collection<Class<? extends AnimalEntity>> AxolotList = CropManager.AXOLOT_MAP.get(handItem.getItem());
-        for (Class<? extends AnimalEntity> type : AxolotList) {
-            for (AnimalEntity e : p.getWorld().getEntitiesByClass(type, box, CropManager::isFeedableAnimal)) {
-                if (mainHandItem.isOf(Items.TROPICAL_FISH_BUCKET)) {
-                    lastUsedItem = handItem.copy();
-                    interactWithEntity(handItem, e);
-                    return;
-                }
+        List<AxolotlEntity> axolotlEntities = p.getWorld().getEntitiesByClass(AxolotlEntity.class, box, axolotl ->
+                axolotl != null && axolotl.isAlive() && axolotl.canEat() &&
+                        axolotl.isBreedingItem(mainHandItem) && axolotl.getBreedingAge() >= 0
+        );
+        for (AxolotlEntity axolot : axolotlEntities) {
+            if (mainHandItem.isOf(Items.TROPICAL_FISH_BUCKET)) {
+                lastUsedItem = handItem.copy();
+                interactWithEntity(handItem, axolot);
+                return;
             }
         }
     }
