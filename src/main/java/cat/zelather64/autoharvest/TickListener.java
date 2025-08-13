@@ -71,10 +71,7 @@ public class TickListener {
                     harvestTick();
                     mainPlantTick();
                 }
-                case FEED -> {
-                    feedTick();
-//                    feedAxolotTick();
-                }
+                case FEED -> feedTick();
                 case FISHING -> fishingTick();
                 case BONEMEALING -> bonemealingTick();
                 case HOEING -> {
@@ -137,9 +134,9 @@ public class TickListener {
                     if (CropManager.isWeedBlock(world, mutablePos) ||
                             (treatFlowersAsWeeds && CropManager.isFlowerBlock(world, mutablePos))) {
 
-                        // 执行清除操作
+                        // 执行清除
                         leftButton(mutablePos.toImmutable());
-                        return;  // 清除后立即返回
+                        return;
                     }
                 }
             }
@@ -284,7 +281,7 @@ public class TickListener {
                     Block block = state.getBlock();
 
                     // 检查作物是否成熟
-                    if (!CropManager.isCropMature(world, mutablePos, state, block)) continue;
+                    if (!CropManager.isCropMature(world, mutablePos, state)) continue;
 
                     // 特殊处理甜浆果丛
                     if (block == Blocks.SWEET_BERRY_BUSH) {
@@ -363,6 +360,7 @@ public class TickListener {
         }
         if (lastUsedItem == null && !CropManager.isSeed(itemStack)) return;
         if (configure.tryFillItems.value) itemStack = tryFillItemInHand();
+        if (itemStack == null) return;
 
         World w = p.getWorld();
         int radius = configure.effect_radius.value;
@@ -380,9 +378,7 @@ public class TickListener {
                 BlockPos downPos = mutablePos.down();
 
                 if (!CropManager.canPaint(targetState, itemStack)) continue;
-                if (!CropManager.canPlantOn(itemStack.getItem(), w, mutablePos, downPos)) continue;
-
-//                if (w.getBlockState(downPos).getBlock() == Blocks.KELP) continue;
+                if (!CropManager.canPlantOn(itemStack.getItem(), w, mutablePos)) continue;
 
                 // 执行种植动作
                 lastUsedItem = itemStack.copy();
@@ -529,24 +525,33 @@ public class TickListener {
      **/
     private int tryReplacingFishingRod() {
         ItemStack itemStack = p.getMainHandStack();
+        boolean keepRodAlive = configure.keepFishingRodAlive.value;
 
-        boolean keepFishingRodAlive = configure.keepFishingRodAlive.value;
+        if (isUsableFishingRod(itemStack, keepRodAlive)) return 0; // 当前鱼竿可用
 
-        if (CropManager.isRod(itemStack)
-                && (!keepFishingRodAlive || itemStack.getMaxDamage() - itemStack.getDamage() > 1)) {
-            return 0;
-        } else {
-            DefaultedList<ItemStack> inv = p.getInventory().getMainStacks();
-            for (int idx = 0; idx < 36; ++idx) {
-                ItemStack s = inv.get(idx);
-                if (CropManager.isRod(s)
-                        && (!keepFishingRodAlive || s.getMaxDamage() - s.getDamage() > 1)) {
-                    AutoHarvest.instance.taskManager.Add_MoveItem(idx, p.getInventory().getSelectedSlot());
-                    return 1;
-                }
+        DefaultedList<ItemStack> inventory = p.getInventory().getMainStacks();
+
+        for (int slot = 0; slot < inventory.size(); slot++) {
+            ItemStack stack = inventory.get(slot);
+            if (isUsableFishingRod(stack, keepRodAlive)) {
+                // 添加物品移动任务
+                AutoHarvest.instance.taskManager.Add_MoveItem(slot, p.getInventory().getSelectedSlot());
+                return 1; // 找到并计划更换鱼竿
             }
-            return -1;
         }
+        return -1; // 没有可用鱼竿
+    }
+
+    private boolean isUsableFishingRod(ItemStack stack, boolean keepAlive) {
+        if (!CropManager.isRod(stack)) {
+            return false;
+        }
+        // 检查耐久度（如果开启鱼竿保护）
+        if (keepAlive) {
+            int remainingUses = stack.getMaxDamage() - stack.getDamage();
+            return remainingUses > 1; // 保留至少1点耐久
+        }
+        return true; // 不考虑耐久
     }
 
     private long getWorldTime() {
@@ -572,14 +577,12 @@ public class TickListener {
                 /* Reel */
                 if (fishBitesAt == 0 && isFishBites(p)) {
                     fishBitesAt = getWorldTime();
-                    assert MinecraftClient.getInstance().interactionManager != null;
-                    MinecraftClient.getInstance().interactionManager.interactItem(p, Hand.MAIN_HAND);
+                    interactWithItem();
                 }
 
                 /* Cast */
                 if (fishBitesAt != 0 && fishBitesAt + 20 <= getWorldTime()) {
-                    assert MinecraftClient.getInstance().interactionManager != null;
-                    MinecraftClient.getInstance().interactionManager.interactItem(p, Hand.MAIN_HAND);
+                    interactWithItem();
                     fishBitesAt = 0;
                 }
                 break;
@@ -587,14 +590,19 @@ public class TickListener {
         }
     }
 
+    private void interactWithItem() {
+        assert MinecraftClient.getInstance().interactionManager != null;
+            MinecraftClient.getInstance().interactionManager.interactItem(p, Hand.MAIN_HAND);
+    }
+
     /* 骨粉催熟 */
     private void bonemealingTick() {
         ItemStack handItem = p.getMainHandStack();
 
-        if (configure.tryFillItems.value){
-            if (!CropManager.isBoneMeal(handItem)) handItem = tryFillItemInHand();
+        if (configure.tryFillItems.value  && !CropManager.isBoneMeal(handItem)){
+            handItem = tryFillItemInHand();
+            if (!CropManager.isBoneMeal(handItem)) return;
         }
-        if (handItem == null || !CropManager.isBoneMeal(handItem)) return;
 
         int radius = configure.effect_radius.value;
         World w = p.getWorld();

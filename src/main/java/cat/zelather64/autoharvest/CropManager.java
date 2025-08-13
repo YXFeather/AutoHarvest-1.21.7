@@ -5,9 +5,11 @@ import com.google.common.collect.HashBiMap;
 import net.minecraft.block.*;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.entity.passive.*;
+import net.minecraft.item.FishingRodItem;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
+import net.minecraft.registry.tag.BlockTags;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
 import net.minecraft.world.World;
@@ -16,22 +18,8 @@ import java.util.*;
 
 
 public class CropManager {
-    public static final Block REED_BLOCK = Blocks.SUGAR_CANE;
-    public static final Block NETHER_WART = Blocks.NETHER_WART;
-    public static final Block BERRY = Blocks.SWEET_BERRY_BUSH;
-    public static final Block BAMBOO = Blocks.BAMBOO;
-    public static final Block KELP = Blocks.KELP;
-    public static final Block KELP_PLANT = Blocks.KELP_PLANT;
-
     public static final Set<Block> WEED_BLOCKS = new HashSet<>() {
         {
-            add(Blocks.OAK_SAPLING);
-            add(Blocks.SPRUCE_SAPLING);
-            add(Blocks.BIRCH_SAPLING);
-            add(Blocks.JUNGLE_SAPLING);
-            add(Blocks.ACACIA_SAPLING);
-            add(Blocks.DARK_OAK_SAPLING);
-            add(Blocks.CHERRY_SAPLING);
             add(Blocks.FERN);
             add(Blocks.SHORT_GRASS);
             add(Blocks.TALL_GRASS);
@@ -46,6 +34,8 @@ public class CropManager {
             // 1.16
             add(Blocks.CRIMSON_ROOTS);
             add(Blocks.WARPED_ROOTS);
+            add(Blocks.CRIMSON_FUNGUS);
+            add(Blocks.WARPED_FUNGUS);
             //1.21.5
             add(Blocks.SHORT_DRY_GRASS);
             add(Blocks.TALL_DRY_GRASS);
@@ -53,6 +43,13 @@ public class CropManager {
             add(Blocks.BUSH);
         }
     };
+
+//    public static final Set<Block> FLOWER_BLOCKS = new HashSet<>() {
+//        {
+//            //1.21.5
+//            add(Blocks.FIREFLY_BUSH);
+//        }
+//    };
 
     public static final Set<Block> WOOD_BLOCKS = new HashSet<>() {
         {
@@ -80,36 +77,6 @@ public class CropManager {
             add(Blocks.WARPED_HYPHAE); //诡异木
             add(Blocks.PALE_OAK_WOOD); //苍白橡木
             add(Blocks.PUMPKIN); //南瓜
-        }
-    };
-
-    public static final Set<Block> FLOWER_BLOCKS = new HashSet<>() {
-        {
-            add(Blocks.DANDELION);
-            add(Blocks.POPPY);
-            add(Blocks.BLUE_ORCHID);
-            add(Blocks.ALLIUM);
-            add(Blocks.AZURE_BLUET);
-            add(Blocks.RED_TULIP);
-            add(Blocks.ORANGE_TULIP);
-            add(Blocks.WHITE_TULIP);
-            add(Blocks.PINK_TULIP);
-            add(Blocks.OXEYE_DAISY);
-            add(Blocks.CORNFLOWER);
-            add(Blocks.LILY_OF_THE_VALLEY);
-            add(Blocks.WITHER_ROSE);
-            add(Blocks.SUNFLOWER);
-            add(Blocks.LILAC);
-            add(Blocks.ROSE_BUSH);
-            add(Blocks.PEONY);
-            //1.20.1
-            add(Blocks.TORCHFLOWER);
-            add(Blocks.PINK_PETALS);
-            //1.21.5
-            add(Blocks.CLOSED_EYEBLOSSOM);
-            add(Blocks.OPEN_EYEBLOSSOM);
-            add(Blocks.FIREFLY_BUSH);
-            add(Blocks.WILDFLOWERS);
         }
     };
 
@@ -165,7 +132,7 @@ public class CropManager {
 
     public static boolean isWeedBlock(World w, BlockPos pos) {
         Block b = w.getBlockState(pos).getBlock();
-        return WEED_BLOCKS.contains(b);
+        return WEED_BLOCKS.contains(b) || b.getDefaultState().isIn(BlockTags.SAPLINGS);
     }
 
     //是有皮木头
@@ -176,37 +143,45 @@ public class CropManager {
 
     public static boolean isFlowerBlock(World w, BlockPos pos) {
         Block b = w.getBlockState(pos).getBlock();
-        return FLOWER_BLOCKS.contains(b);
+        return b == Blocks.FIREFLY_BUSH || b.getDefaultState().isIn(BlockTags.FLOWERS);
     }
 
-    public static boolean isCropMature(World w, BlockPos pos, BlockState stat, Block b) {
-        if (b instanceof CropBlock) {
-            return ((CropBlock) b).isMature(stat);
-        } else if (b == BERRY) {
-            return stat.get(SweetBerryBushBlock.AGE) == 3;
-        } else if (b == NETHER_WART) {
-            if (b instanceof NetherWartBlock)
-                return stat.get(NetherWartBlock.AGE) >= 3;
-            return false;
-        } else if (b == REED_BLOCK || b == BAMBOO || (b == KELP || b == KELP_PLANT)) {
-            Block blockDown = w.getBlockState(pos.down()).getBlock();
-            Block blockDown2 = w.getBlockState(pos.down(2)).getBlock();
-            return (blockDown == REED_BLOCK && blockDown2 != REED_BLOCK) ||
-                    (blockDown == BAMBOO && blockDown2 != BAMBOO) ||
-                    (blockDown == KELP_PLANT && blockDown2 != KELP_PLANT);
-        } else if (b instanceof PitcherCropBlock) {
-            return stat.get(PitcherCropBlock.AGE) >= 4;
-        } else if (b instanceof CocoaBlock) {
-            return stat.get(CocoaBlock.AGE) >= 2;
-        } else if (b == Blocks.PUMPKIN || b == Blocks.MELON) {
-            return true;
+    public static boolean isCropMature(World world, BlockPos pos, BlockState state) {
+        Block block = state.getBlock();
+
+        // 使用多态处理作物块
+        if (block instanceof CropBlock cropBlock) return cropBlock.isMature(state);
+
+        // 使用属性键常量处理特定作物
+        if (block == Blocks.SWEET_BERRY_BUSH) return state.get(SweetBerryBushBlock.AGE) == 3;
+
+        if (block == Blocks.NETHER_WART) return state.get(NetherWartBlock.AGE) >= 3;
+
+        if (block == Blocks.PITCHER_CROP) return state.get(PitcherCropBlock.AGE) >= 4;
+
+        if (block == Blocks.COCOA) return state.get(CocoaBlock.AGE) >= 2;
+
+        // 处理即时成熟的作物
+        if (block == Blocks.PUMPKIN || block == Blocks.MELON) return true;
+
+        // 4. 处理高杆作物（甘蔗、竹子、海带）
+        if (isTallCrop(block)) {
+            BlockState downState = world.getBlockState(pos.down());
+            Block downBlock = downState.getBlock();
+
+            if (downBlock == block) {
+                BlockState downDownState = world.getBlockState(pos.down(2));
+                return downDownState.getBlock() != block;
+            }
         }
+
         return false;
     }
 
-    public static boolean isBoneMeal(ItemStack stack) {
-        return (!stack.isEmpty()
-                && stack.getItem() == Items.BONE_MEAL);
+    // 高杆作物判断（可扩展）
+    private static boolean isTallCrop(Block block) {
+        return block == Blocks.SUGAR_CANE || block == Blocks.BAMBOO ||
+                block == Blocks.KELP || block == Blocks.KELP_PLANT;
     }
 
     public static boolean isSeed(ItemStack stack) {
@@ -221,28 +196,31 @@ public class CropManager {
     public static boolean canPaint(BlockState s, ItemStack stack) {
         if (stack.getItem() == Items.KELP) {
             // is water and the water is stationary
-            return s.getBlock() == Blocks.WATER && s.getEntries().values().toArray()[0].equals(0);
+            return s.getBlock() == Blocks.WATER && s.get(FluidBlock.LEVEL) == 0;
         }
-        return s.getBlock() == Blocks.AIR;
+        return s.isAir();
+    }
+
+    public static boolean canPlantOn(Item m, World w, BlockPos pos) {
+        BlockPos downPos = pos.down();
+        BlockState downState = w.getBlockState(downPos);
+        Block downBlock = downState.getBlock();
+        if (isTallCrop(downBlock)) return false;
+
+        if (!SEED_MAP.containsValue(m)) return false;
+        return SEED_MAP.inverse().get(m).getDefaultState().canPlaceAt(w, pos);
+    }
+
+    public static boolean isBoneMeal(ItemStack stack) {
+        return stack != null && stack.isOf(Items.BONE_MEAL);
     }
 
     public static boolean isJungleLog(BlockState s) {
-        return s.getBlock() == Blocks.JUNGLE_LOG || s.getBlock() == Blocks.STRIPPED_JUNGLE_LOG ||
-                s.getBlock() == Blocks.JUNGLE_WOOD || s.getBlock() == Blocks.STRIPPED_JUNGLE_WOOD;
+        return s.isIn(BlockTags.JUNGLE_LOGS);
     }
 
     public static boolean isRod(ItemStack stack) {
-        return (!stack.isEmpty()
-                && stack.getItem() == Items.FISHING_ROD);
-    }
-
-    public static boolean canPlantOn(Item m, World w, BlockPos pos, BlockPos downPos) {
-        if (w.getBlockState(downPos).getBlock() == REED_BLOCK || w.getBlockState(downPos).getBlock() == BAMBOO ||
-                (w.getBlockState(downPos).getBlock() == KELP || w.getBlockState(downPos).getBlock() == KELP_PLANT)) {
-            return false;
-        }
-        if (!SEED_MAP.containsValue(m)) return false;
-        return SEED_MAP.inverse().get(m).getDefaultState().canPlaceAt(w, pos);
+        return stack.getItem() instanceof FishingRodItem;
     }
 
     public static boolean needBreakingProgress(BlockState s) {
