@@ -11,8 +11,7 @@
 		"Zelather64"
 	],
 	"contact": {
-		"homepage": "https://fabricmc.net/",
-		"sources": "https://github.com/FabricMC/fabric-example-mod"
+		"sources": "https://github.com/YXFeather/AutoHarvest-1.21.7/tree/master"
 	},
 	"license": "MIT",
 	"icon": "assets/autoharvest/icon.png",

@@ -6,7 +6,7 @@ import net.minecraft.text.Text;
 
 public class AutoHarvest implements ClientModInitializer {
 	public static final String MOD_NAME = "autoharvest";
-	public static AutoHarvest instance;
+	public static AutoHarvest INSTANCE;
 	public HarvestMode mode = HarvestMode.FISHING;
 	public int overlayRemainingTick = 0;
 	public TickListener listener = null;
@@ -19,19 +19,19 @@ public class AutoHarvest implements ClientModInitializer {
 
 	@Override
 	public void onInitializeClient() {
-		if (AutoHarvest.instance == null)
-			AutoHarvest.instance = new AutoHarvest();
-		if (AutoHarvest.instance.KeyListener == null) {
-			AutoHarvest.instance.KeyListener = new KeyPressListener();
+		if (AutoHarvest.INSTANCE == null)
+			AutoHarvest.INSTANCE = new AutoHarvest();
+		if (AutoHarvest.INSTANCE.KeyListener == null) {
+			AutoHarvest.INSTANCE.KeyListener = new KeyPressListener();
 		}
-		AutoHarvest.instance.configure.load();
+		AutoHarvest.INSTANCE.configure.load();
 	}
 
 	public enum HarvestMode {
 		HARVEST, // Harvest only
 		PLANT, // Plant only
 		Farmer, // Harvest then re-plant
-		SEED, // Harvest seeds & flowers
+		WEED, // Harvest seeds & flowers
 		BONEMEALING,
 		FEED, // Feed animals
 		FISHING,// Fishing

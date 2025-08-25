@@ -1,5 +1,6 @@
 package cat.zelather64.autoharvest;
 
+import cat.zelather64.autoharvest.Utils.IConfigValue;
 import com.google.gson.*;
 import net.fabricmc.loader.api.FabricLoader;
 
@@ -7,137 +8,157 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Configure {
     private final File configFile;
+    private final List<IConfigValue<?>> configEntries = new ArrayList<>();
 
-    public FlowerISseed flowerISseed = new FlowerISseed();
-
-    public static class FlowerISseed {
-        public boolean value = false;
-        private final String name = "flowerISseed";
-    }
-
-    public Effect_radius effect_radius = new Effect_radius();
-
-    public static class Effect_radius {
-        public int value = 3;
-        private final String name = "effect_radius";
-        public static final int Max = 3;
-        public static final int Min = 0;
-    }
-
-    public TickSkip tickSkip = new TickSkip();
-
-    public static class TickSkip {
-        public static int value = 2;
-        private final String name = "tick_skip";
-        public static final int Max = 100;
-        public static final int Min = 0;
-    }
-
-    public KeepFishingRodAlive keepFishingRodAlive = new KeepFishingRodAlive();
-
-    public static class KeepFishingRodAlive {
-        public boolean value = true;
-        String name = "keepFishingRodAlive";
-    }
-
-    public KeepWaterNearBy keepWaterNearBy = new KeepWaterNearBy();
-
-    public static class KeepWaterNearBy {
-        public boolean value = true;
-        String name = "keepWaterNearBy";
-    }
-
-    public TryFillItems tryFillItems = new TryFillItems();
-
-    public static class TryFillItems {
-        public boolean value = true;
-        String name = "TryFillItemsInHand";
-    }
+    // 配置项定义
+    public final BooleanConfig flowerISseed = new BooleanConfig("flowerISseed", false);
+    public final IntConfig effectRadius = new IntConfig("effect_radius", 3, 0, 3);
+    public final IntConfig tickSkip = new IntConfig("tick_skip", 2, 0, 100);
+    public final BooleanConfig keepFishingRodAlive = new BooleanConfig("keepFishingRodAlive", true);
+    public final BooleanConfig keepWaterNearBy = new BooleanConfig("keepWaterNearBy", true);
+    public final BooleanConfig tryFillItems = new BooleanConfig("TryFillItemsInHand", true);
 
     public Configure() {
-        this.configFile = FabricLoader
-                .getInstance()
+        this.configFile = FabricLoader.getInstance()
                 .getConfigDir()
                 .resolve("AutoHarvest.json")
                 .toFile();
-        flowerISseed.value = false;
+
+        // 注册所有配置项
+        registerConfig(flowerISseed);
+        registerConfig(effectRadius);
+        registerConfig(tickSkip);
+        registerConfig(keepFishingRodAlive);
+        registerConfig(keepWaterNearBy);
+        registerConfig(tryFillItems);
+    }
+
+    private void registerConfig(IConfigValue<?> config) {
+        configEntries.add(config);
     }
 
     public Configure load() {
         try {
-            if (!Files.exists(this.configFile.toPath()))
-                return this;
-            String jsonStr = new String(Files.readAllBytes(this.configFile.toPath()));
-            if (!jsonStr.isEmpty()) {
-                JsonObject jsonObject = JsonParser.parseString(jsonStr).getAsJsonObject();
+            if (!Files.exists(configFile.toPath())) return this;
 
-                if (jsonObject.has(flowerISseed.name)) {
-                    try {
-                        this.flowerISseed.value = jsonObject.getAsJsonPrimitive(flowerISseed.name).getAsBoolean();
-                    } catch (Exception e) {
-                    }
+            String jsonStr = new String(Files.readAllBytes(configFile.toPath()));
+            if (jsonStr.isEmpty()) return this;
+
+            JsonObject jsonObject = JsonParser.parseString(jsonStr).getAsJsonObject();
+
+            // 统一加载所有配置项
+            for (IConfigValue<?> config : configEntries) {
+                if (jsonObject.has(config.getName())) {
+                    config.loadFromJson(jsonObject);
                 }
-                if (jsonObject.has(keepFishingRodAlive.name)) {
-                    try {
-                        this.keepFishingRodAlive.value = jsonObject.getAsJsonPrimitive(keepFishingRodAlive.name).getAsBoolean();
-                    } catch (Exception e) {
-                    }
-                }
-                if (jsonObject.has(keepWaterNearBy.name)) {
-                    try {
-                        this.keepWaterNearBy.value = jsonObject.getAsJsonPrimitive(keepWaterNearBy.name).getAsBoolean();
-                    } catch (Exception e) {
-                    }
-                }
-                if (jsonObject.has(tryFillItems.name)) {
-                    try {
-                        this.tryFillItems.value = jsonObject.getAsJsonPrimitive(tryFillItems.name).getAsBoolean();
-                    } catch (Exception e) {
-                    }
-                }
-                if (jsonObject.has(effect_radius.name)) {
-                    try {
-                        this.effect_radius.value = jsonObject.getAsJsonPrimitive(effect_radius.name).getAsInt();
-                        if (effect_radius.value < Effect_radius.Min || effect_radius.value > Effect_radius.Max)
-                            effect_radius.value = Effect_radius.Max;
-                    } catch (Exception e) {
-                    }
-                }
-                if (jsonObject.has(tickSkip.name)) {
-                    try {
-                        this.tickSkip.value = jsonObject.getAsJsonPrimitive(tickSkip.name).getAsInt();
-                        if (tickSkip.value < TickSkip.Min || tickSkip.value > TickSkip.Max)
-                            tickSkip.value = 2;
-                    } catch (Exception e) {
-                    }
-                }
-                return this;
             }
         } catch (Exception ex) {
             ex.printStackTrace();
         }
-        return null;
+        return this;
     }
 
     public Configure save() {
         JsonObject jsonObject = new JsonObject();
-        jsonObject.addProperty(flowerISseed.name, this.flowerISseed.value);
-        jsonObject.addProperty(keepFishingRodAlive.name, this.keepFishingRodAlive.value);
-        jsonObject.addProperty(keepWaterNearBy.name, this.keepWaterNearBy.value);
-        jsonObject.addProperty(tryFillItems.name, this.tryFillItems.value);
-        jsonObject.addProperty(effect_radius.name, this.effect_radius.value);
-        jsonObject.addProperty(tickSkip.name, this.tickSkip.value);
 
-        Gson gson = new GsonBuilder().setPrettyPrinting().create();
-        JsonElement el = JsonParser.parseString(jsonObject.toString());
+        // 统一保存所有配置项
+        for (IConfigValue<?> config : configEntries) {
+            config.saveToJson(jsonObject);
+        }
+
+        // 写入文件
         try (PrintWriter out = new PrintWriter(configFile)) {
-            out.println(gson.toJson(el));
+            Gson gson = new GsonBuilder().setPrettyPrinting().create();
+            out.println(gson.toJson(jsonObject));
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         }
         return this;
+    }
+
+    // ===== 配置项实现类 =====
+
+    // 布尔型配置
+    public static class BooleanConfig implements IConfigValue<Boolean> {
+        private boolean value;
+        private final String name;
+
+        public BooleanConfig(String name, boolean defaultValue) {
+            this.name = name;
+            this.value = defaultValue;
+        }
+
+        @Override public Boolean getValue() { return value; }
+        @Override public void setValue(Boolean value) { this.value = value; }
+        @Override public String getName() { return name; }
+
+        @Override
+        public void loadFromJson(JsonObject json) {
+            try {
+                value = json.getAsJsonPrimitive(name).getAsBoolean();
+            } catch (Exception e) {
+                // 保持默认值
+            }
+        }
+
+        @Override
+        public void saveToJson(JsonObject json) {
+            json.addProperty(name, value);
+        }
+    }
+
+    // 整型配置（带范围验证）
+    public static class IntConfig implements IConfigValue<Integer> {
+        private int value;
+        private final String name;
+        private final int min;
+        private final int max;
+
+        public IntConfig(String name, int defaultValue, int min, int max) {
+            this.name = name;
+            this.min = min;
+            this.max = max;
+            this.value = clamp(defaultValue); // 初始值也验证范围
+        }
+        public int getMin() {
+            return min;
+        }
+
+        public int getMax() {
+            return max;
+        }
+
+        @Override public Integer getValue() { return value; }
+
+        @Override
+        public void setValue(Integer newValue) {
+            this.value = clamp(newValue);
+        }
+
+        @Override public String getName() { return name; }
+
+        private int clamp(int value) {
+            return Math.max(min, Math.min(max, value));
+        }
+
+        @Override
+        public void loadFromJson(JsonObject json) {
+            try {
+                int loadedValue = json.getAsJsonPrimitive(name).getAsInt();
+                setValue(loadedValue); // 使用setter确保范围验证
+            } catch (Exception e) {
+                // 保持默认值
+            }
+        }
+
+        @Override
+        public void saveToJson(JsonObject json) {
+            json.addProperty(name, value);
+        }
     }
 }

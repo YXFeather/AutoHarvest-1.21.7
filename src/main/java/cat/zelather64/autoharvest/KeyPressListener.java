@@ -9,132 +9,133 @@ import net.minecraft.client.util.InputUtil;
 import net.minecraft.text.Text;
 import org.lwjgl.glfw.GLFW;
 
+import java.util.HashMap;
+import java.util.Map;
+
 public class KeyPressListener {
 
-    private final KeyBinding key_Switch;
-    private final KeyBinding key_ModeChange;
-    private final KeyBinding key_Config;
-    private final KeyBinding key_HARVEST;
-    private final KeyBinding key_PLANT;
-    private final KeyBinding key_Farmer;
-    private final KeyBinding key_SEED;
-    private final KeyBinding key_FEED;
-    private final KeyBinding key_FISHING;
-    private final KeyBinding Key_BONEMEALING;
-    private final KeyBinding Key_HOEING;
-    private final KeyBinding Key_AXEITEMS;
+    private static final int OVERLAY_DURATION_TICKS = 60;
+    private static final String CATEGORY_GENERAL = "key.category.general";
+    private static final String CATEGORY_SWITCH_TO = "key.category.switchTo";
+
+    private final KeyBinding keySwitch;
+    private final KeyBinding keyModeChange;
+    private final KeyBinding keyConfig;
+    private final KeyBinding keyHarvest;
+    private final KeyBinding keyPlant;
+    private final KeyBinding keyFarmer;
+    private final KeyBinding keyWeed;
+    private final KeyBinding keyFeed;
+    private final KeyBinding keyFishing;
+    private final KeyBinding keyBonemealing;
+    private final KeyBinding keyHoeing;
+    private final KeyBinding keyAxeItems;
+
+    // 按键到模式的映射
+    private final Map<KeyBinding, AutoHarvest.HarvestMode> keyModeMap;
 
     public KeyPressListener() {
-        String categoryGeneral = Text.translatable("key.category.general").getString();
-        String categorySwitchTo = Text.translatable("key.category.switchTo").getString();
-        key_ModeChange = new KeyBinding("key.general.modechange",
-                InputUtil.Type.KEYSYM,
-                GLFW.GLFW_KEY_H,
-                categoryGeneral
-        );
-        key_Switch = new KeyBinding("key.general.switch",
-                GLFW.GLFW_KEY_J,
-                categoryGeneral
-        );
-        key_Config = new KeyBinding("key.general.config",
-                GLFW.GLFW_KEY_K,
-                categoryGeneral
-        );
-        key_HARVEST = new KeyBinding("harvest",
-                GLFW.GLFW_KEY_UNKNOWN,
-                categorySwitchTo
-        );
-        key_PLANT = new KeyBinding("plant",
-                GLFW.GLFW_KEY_UNKNOWN,
-                categorySwitchTo
-        );
-        key_Farmer = new KeyBinding("farmer",
-                GLFW.GLFW_KEY_UNKNOWN,
-                categorySwitchTo
-        );
-        key_SEED = new KeyBinding("seed",
-                GLFW.GLFW_KEY_UNKNOWN,
-                categorySwitchTo
-        );
-        key_FEED = new KeyBinding("feed",
-                GLFW.GLFW_KEY_UNKNOWN,
-                categorySwitchTo
-        );
-        key_FISHING = new KeyBinding("fishing",
-                GLFW.GLFW_KEY_UNKNOWN,
-                categorySwitchTo
-        );
-        Key_BONEMEALING = new KeyBinding("bonemealing",
-                GLFW.GLFW_KEY_UNKNOWN,
-                categorySwitchTo
-        );
-        //耕地模式快捷键
-        Key_HOEING = new KeyBinding("hoeing",
-                GLFW.GLFW_KEY_UNKNOWN,
-                categorySwitchTo
-        );
-        //斧头削皮右键模式快捷键
-        Key_AXEITEMS = new KeyBinding("axeitems",
-                GLFW.GLFW_KEY_UNKNOWN,
-                categorySwitchTo
-        );
+        // 统一命名规范并初始化按键绑定
+        String categoryGeneral = Text.translatable(CATEGORY_GENERAL).getString();
+        String categorySwitchTo = Text.translatable(CATEGORY_SWITCH_TO).getString();
 
-        KeyBindingHelper.registerKeyBinding(key_ModeChange);
-        KeyBindingHelper.registerKeyBinding(key_Switch);
-        KeyBindingHelper.registerKeyBinding(key_Config);
-        KeyBindingHelper.registerKeyBinding(key_HARVEST);
-        KeyBindingHelper.registerKeyBinding(key_PLANT);
-        KeyBindingHelper.registerKeyBinding(key_Farmer);
-        KeyBindingHelper.registerKeyBinding(key_SEED);
-        KeyBindingHelper.registerKeyBinding(key_FEED);
-        KeyBindingHelper.registerKeyBinding(key_FISHING);
-        KeyBindingHelper.registerKeyBinding(Key_BONEMEALING);
-        KeyBindingHelper.registerKeyBinding(Key_HOEING);
-        KeyBindingHelper.registerKeyBinding(Key_AXEITEMS);
+        keyModeChange = createKeyBinding("key.general.modechange", GLFW.GLFW_KEY_H, categoryGeneral);
+        keySwitch = createKeyBinding("key.general.switch", GLFW.GLFW_KEY_J, categoryGeneral);
+        keyConfig = createKeyBinding("key.general.config", GLFW.GLFW_KEY_K, categoryGeneral);
 
+        keyHarvest = createKeyBinding("harvest", GLFW.GLFW_KEY_UNKNOWN, categorySwitchTo);
+        keyPlant = createKeyBinding("plant", GLFW.GLFW_KEY_UNKNOWN, categorySwitchTo);
+        keyFarmer = createKeyBinding("farmer", GLFW.GLFW_KEY_UNKNOWN, categorySwitchTo);
+        keyWeed = createKeyBinding("weed", GLFW.GLFW_KEY_UNKNOWN, categorySwitchTo);
+        keyFeed = createKeyBinding("feed", GLFW.GLFW_KEY_UNKNOWN, categorySwitchTo);
+        keyFishing = createKeyBinding("fishing", GLFW.GLFW_KEY_UNKNOWN, categorySwitchTo);
+        keyBonemealing = createKeyBinding("bonemealing", GLFW.GLFW_KEY_UNKNOWN, categorySwitchTo);
+        keyHoeing = createKeyBinding("hoeing", GLFW.GLFW_KEY_UNKNOWN, categorySwitchTo);
+        keyAxeItems = createKeyBinding("axeitems", GLFW.GLFW_KEY_UNKNOWN, categorySwitchTo);
 
+        keyModeMap = new HashMap<>();
+        keyModeMap.put(keyHarvest, AutoHarvest.HarvestMode.HARVEST);
+        keyModeMap.put(keyPlant, AutoHarvest.HarvestMode.PLANT);
+        keyModeMap.put(keyFarmer, AutoHarvest.HarvestMode.Farmer);
+        keyModeMap.put(keyWeed, AutoHarvest.HarvestMode.WEED);
+        keyModeMap.put(keyFeed, AutoHarvest.HarvestMode.FEED);
+        keyModeMap.put(keyFishing, AutoHarvest.HarvestMode.FISHING);
+        keyModeMap.put(keyBonemealing, AutoHarvest.HarvestMode.BONEMEALING);
+        keyModeMap.put(keyHoeing, AutoHarvest.HarvestMode.HOEING);
+        keyModeMap.put(keyAxeItems, AutoHarvest.HarvestMode.AXEITEMS);
+
+        // 注册客户端tick事件
         ClientTickEvents.END_CLIENT_TICK.register(client -> onProcessKey());
     }
 
+    /**
+     * 创建并注册按键绑定的辅助方法
+     */
+    private KeyBinding createKeyBinding(String translationKey, int keyCode, String category) {
+        KeyBinding keyBinding = new KeyBinding(translationKey, InputUtil.Type.KEYSYM, keyCode, category);
+        KeyBindingHelper.registerKeyBinding(keyBinding);
+        return keyBinding;
+    }
+
     public void onProcessKey() {
-        if (key_Switch.wasPressed()) {
-            AutoHarvest.instance.Switch = !AutoHarvest.instance.Switch;
-            AutoHarvest.msg("notify.turn." + (AutoHarvest.instance.Switch ? "on" : "off"));
-        } else if (key_Config.wasPressed()) {
-            MinecraftClient.getInstance().setScreen(ClothConfig.openConfigScreen(MinecraftClient.getInstance().currentScreen));
+        if (keySwitch.wasPressed()) {
+            handleSwitchKey();
+        } else if (keyConfig.wasPressed()) {
+            handleConfigKey();
         } else {
-            String modeName = null;
-            if (key_ModeChange.wasPressed()) {
-                if (AutoHarvest.instance.overlayRemainingTick == 0) {
-                    AutoHarvest.instance.overlayRemainingTick = 60;
-                    modeName = AutoHarvest.instance.mode.toString().toLowerCase();
-                } else {
-                    AutoHarvest.instance.overlayRemainingTick = 60;
-                    modeName = AutoHarvest.instance.toNextMode().toString().toLowerCase();
-                }
-            } else if (key_HARVEST.wasPressed()) {
-                modeName = AutoHarvest.instance.toSpecifiedMode(AutoHarvest.HarvestMode.HARVEST).toString().toLowerCase();
-            } else if (key_PLANT.wasPressed()) {
-                modeName = AutoHarvest.instance.toSpecifiedMode(AutoHarvest.HarvestMode.PLANT).toString().toLowerCase();
-            } else if (key_Farmer.wasPressed()) {
-                modeName = AutoHarvest.instance.toSpecifiedMode(AutoHarvest.HarvestMode.Farmer).toString().toLowerCase();
-            } else if (key_SEED.wasPressed()) {
-                modeName = AutoHarvest.instance.toSpecifiedMode(AutoHarvest.HarvestMode.SEED).toString().toLowerCase();
-            } else if (key_FEED.wasPressed()) {
-                modeName = AutoHarvest.instance.toSpecifiedMode(AutoHarvest.HarvestMode.FEED).toString().toLowerCase();
-            } else if (key_FISHING.wasPressed()) {
-                modeName = AutoHarvest.instance.toSpecifiedMode(AutoHarvest.HarvestMode.FISHING).toString().toLowerCase();
-            } else if (Key_BONEMEALING.wasPressed()) {
-                modeName = AutoHarvest.instance.toSpecifiedMode(AutoHarvest.HarvestMode.BONEMEALING).toString().toLowerCase();
-            }
-            else if (Key_HOEING.wasPressed()) {
-                modeName = AutoHarvest.instance.toSpecifiedMode(AutoHarvest.HarvestMode.HOEING).toString().toLowerCase();
-            }
-            else if (Key_AXEITEMS.wasPressed()) {
-                modeName = AutoHarvest.instance.toSpecifiedMode(AutoHarvest.HarvestMode.AXEITEMS).toString().toLowerCase();
-            }
-            if (modeName != null)
-                AutoHarvest.msg("notify.switch_to", Text.translatable(modeName).getString());
+            handleModeChangeKeys();
         }
+    }
+
+    /**
+     * 处理开关按键
+     */
+    private void handleSwitchKey() {
+        AutoHarvest.INSTANCE.Switch = !AutoHarvest.INSTANCE.Switch;
+        AutoHarvest.msg("notify.turn." + (AutoHarvest.INSTANCE.Switch ? "on" : "off"));
+    }
+
+    private void handleConfigKey() {
+        MinecraftClient client = MinecraftClient.getInstance();
+        client.setScreen(ClothConfig.openConfigScreen(client.currentScreen));
+    }
+
+    private void handleModeChangeKeys() {
+        String modeName = null;
+
+        if (keyModeChange.wasPressed()) {
+            modeName = handleModeChangeKey();
+        } else {
+            // 遍历映射查找按下的键
+            for (Map.Entry<KeyBinding, AutoHarvest.HarvestMode> entry : keyModeMap.entrySet()) {
+                if (entry.getKey().wasPressed()) {
+                    modeName = getModeName(entry.getValue());
+                    break;
+                }
+            }
+        }
+
+        if (modeName != null) {
+            AutoHarvest.msg("notify.switch_to", Text.translatable(modeName).getString());
+        }
+    }
+
+    /**
+     * 处理模式切换按键的特殊逻辑
+     */
+    private String handleModeChangeKey() {
+        AutoHarvest.INSTANCE.overlayRemainingTick = OVERLAY_DURATION_TICKS;
+        if (AutoHarvest.INSTANCE.overlayRemainingTick == 0) {
+            return AutoHarvest.INSTANCE.mode.toString().toLowerCase();
+        } else {
+            return AutoHarvest.INSTANCE.toNextMode().toString().toLowerCase();
+        }
+    }
+
+    /**
+     * 获取指定模式的名称
+     */
+    private String getModeName(AutoHarvest.HarvestMode mode) {
+        return AutoHarvest.INSTANCE.toSpecifiedMode(mode).toString().toLowerCase();
     }
 }

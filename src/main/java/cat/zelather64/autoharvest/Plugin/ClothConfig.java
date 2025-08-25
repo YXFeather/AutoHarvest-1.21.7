@@ -12,26 +12,39 @@ import net.minecraft.text.Text;
 public class ClothConfig {
     public static Screen openConfigScreen(Screen parentScreen) {
         ConfigBuilder builder = ConfigBuilder.create()
-
-                .setTitle(Text.translatable(AutoHarvest.MOD_NAME + " config screen"))
+                .setTitle(Text.translatable("config.%s_config_screen",AutoHarvest.MOD_NAME))
                 .setSavingRunnable(ClothConfig::saveConfig);
 
-        ConfigCategory scrolling = builder.getOrCreateCategory(Text.translatable(AutoHarvest.MOD_NAME));
+        ConfigCategory scrolling = builder.getOrCreateCategory(Text.translatable("config.%s", AutoHarvest.MOD_NAME));
         ConfigEntryBuilder entryBuilder = ConfigEntryBuilder.create();
 
-        Configure c = AutoHarvest.instance.configure.load();
+        Configure c = AutoHarvest.INSTANCE.configure.load();
 
-        scrolling.addEntry(entryBuilder.startBooleanToggle(Text.translatable("config.flower_is_seed"), c.flowerISseed.value).setDefaultValue(false).setSaveConsumer(b -> c.flowerISseed.value = b).build());
-        scrolling.addEntry(entryBuilder.startBooleanToggle(Text.translatable("config.keep_water_near_by"), c.keepWaterNearBy.value).setTooltip(Text.translatable("config.keep_water_near_by_tooltip")).setDefaultValue(new Configure.KeepWaterNearBy().value).setSaveConsumer(b -> c.keepWaterNearBy.value = b).build());
-        scrolling.addEntry(entryBuilder.startBooleanToggle(Text.translatable("config.keep_fishing_rod_alive"), c.keepFishingRodAlive.value).setDefaultValue(new Configure.KeepFishingRodAlive().value).setSaveConsumer(b -> c.keepFishingRodAlive.value = b).build());
-        scrolling.addEntry(entryBuilder.startBooleanToggle(Text.translatable("config.try_fill_items_in_hand"), c.tryFillItems.value).setDefaultValue(new Configure.TryFillItems().value).setSaveConsumer(b -> c.tryFillItems.value = b).build());
+        scrolling.addEntry(entryBuilder.startBooleanToggle(Text.translatable("config.flower_is_seed"),
+                c.flowerISseed.getValue()).setDefaultValue(false).setSaveConsumer(c.flowerISseed::setValue).build());
 
-        scrolling.addEntry(entryBuilder.startIntSlider(Text.translatable("config.effect_radius"), c.effect_radius.value, c.effect_radius.Min, c.effect_radius.Max).setDefaultValue((new Configure.Effect_radius()).value).setSaveConsumer(b -> c.effect_radius.value = b).build());
-        scrolling.addEntry(entryBuilder.startIntField(Text.translatable("config.tick_skip"),c.tickSkip.value).setTooltip(Text.translatable("config.tick_skip_tooltip")).setDefaultValue(new Configure.TickSkip().value).setSaveConsumer(b -> c.tickSkip.value = b).build());
+        scrolling.addEntry(entryBuilder.startBooleanToggle(Text.translatable("config.keep_water_near_by"),
+                c.keepWaterNearBy.getValue()).setTooltip(Text.translatable("config.keep_water_near_by_tooltip"))
+                .setDefaultValue(c.keepWaterNearBy.getValue()).setSaveConsumer(c.keepWaterNearBy::setValue).build());
+
+        scrolling.addEntry(entryBuilder.startBooleanToggle(Text.translatable("config.keep_fishing_rod_alive"),
+                c.keepFishingRodAlive.getValue()).setDefaultValue(c.keepFishingRodAlive.getValue())
+                .setSaveConsumer(c.keepFishingRodAlive::setValue).build());
+        scrolling.addEntry(entryBuilder.startBooleanToggle(Text.translatable("config.try_fill_items_in_hand"),
+                c.tryFillItems.getValue()).setDefaultValue(c.tryFillItems.getValue()).setSaveConsumer(c.tryFillItems::setValue).build());
+
+        scrolling.addEntry(entryBuilder.startIntSlider(Text.translatable("config.effect_radius"),
+                c.effectRadius.getValue(), c.effectRadius.getMin(), c.effectRadius.getMax())
+                .setDefaultValue(c.effectRadius.getValue()).setSaveConsumer(c.effectRadius::setValue).build());
+
+        scrolling.addEntry(entryBuilder.startIntField(Text.translatable("config.tick_skip"),c.tickSkip.getValue())
+                .setTooltip(Text.translatable("config.tick_skip_tooltip")).setDefaultValue(c.tickSkip.getValue())
+                .setSaveConsumer(c.tickSkip::setValue).build());
+
         return builder.setParentScreen(parentScreen).build();
     }
 
     private static void saveConfig() {
-        AutoHarvest.instance.configure.save();
+        AutoHarvest.INSTANCE.configure.save();
     }
 }

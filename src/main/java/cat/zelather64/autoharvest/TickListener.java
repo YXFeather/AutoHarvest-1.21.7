@@ -37,10 +37,10 @@ public class TickListener {
         this.configure = configure;
         this.p = player;
         ClientTickEvents.END_CLIENT_TICK.register(e -> {
-            if (AutoHarvest.instance.overlayRemainingTick > 0) {
-                AutoHarvest.instance.overlayRemainingTick--;
+            if (AutoHarvest.INSTANCE.overlayRemainingTick > 0) {
+                AutoHarvest.INSTANCE.overlayRemainingTick--;
             }
-            if (AutoHarvest.instance.Switch)
+            if (AutoHarvest.INSTANCE.Switch)
                 onTick(e.player);
         });
     }
@@ -54,16 +54,16 @@ public class TickListener {
         try {
             if (player != p) {
                 this.p = player;
-                AutoHarvest.instance.Switch = false;
+                AutoHarvest.INSTANCE.Switch = false;
                 AutoHarvest.msg("notify.turn.off");
                 return;
             }
-            if (AutoHarvest.instance.taskManager.Count() > 0) {
-                AutoHarvest.instance.taskManager.RunATask();
+            if (AutoHarvest.INSTANCE.taskManager.Count() > 0) {
+                AutoHarvest.INSTANCE.taskManager.RunATask();
                 return;
             }
-            switch (AutoHarvest.instance.mode) {
-                case SEED -> weedTick();
+            switch (AutoHarvest.INSTANCE.mode) {
+                case WEED -> weedTick();
                 case HARVEST -> harvestTick();
                 case PLANT -> mainPlantTick();
 
@@ -83,13 +83,13 @@ public class TickListener {
                     offHandStripTick();
                 }
             }
-            if (AutoHarvest.instance.mode != AutoHarvest.HarvestMode.FISHING)
-                AutoHarvest.instance.taskManager.Add_TickSkip(Configure.TickSkip.value);
+            if (AutoHarvest.INSTANCE.mode != AutoHarvest.HarvestMode.FISHING)
+                AutoHarvest.INSTANCE.taskManager.Add_TickSkip(configure.tickSkip.getValue());
         } catch (Exception ex) {
             AutoHarvest.msg("notify.tick_error");
             AutoHarvest.msg("notify.turn.off");
             ex.printStackTrace();
-            AutoHarvest.instance.Switch = false;
+            AutoHarvest.INSTANCE.Switch = false;
         }
     }
 
@@ -109,7 +109,7 @@ public class TickListener {
     /* 除草 */
     private void weedTick() {
         World world = p.getWorld();
-        int radius = configure.effect_radius.value;
+        int radius = configure.effectRadius.getValue();
         Vec3d posVec = p.getPos();
         int centerX = (int) Math.floor(posVec.x);
         int centerY = (int) Math.floor(posVec.y);// the "leg block"
@@ -118,7 +118,7 @@ public class TickListener {
         // 使用可变位置减少对象创建
         BlockPos.Mutable mutablePos = new BlockPos.Mutable();
 
-        boolean treatFlowersAsWeeds = AutoHarvest.instance.configure.flowerISseed.value;
+        boolean treatFlowersAsWeeds = configure.flowerISseed.getValue();
 
         for (int dy = 3; dy >= -2; dy--) {
             int y = centerY + dy;
@@ -160,7 +160,7 @@ public class TickListener {
     /* 耕地 */
     private void hoeingTick(Hand hand) {
         World world = p.getWorld();
-        int radius = configure.effect_radius.value;
+        int radius = configure.effectRadius.getValue();
         Vec3d posVec = p.getPos();
         int centerX = (int) Math.floor(posVec.x);
         int centerY = (int) Math.floor(posVec.y -0.2D);// 脚下方块
@@ -184,7 +184,7 @@ public class TickListener {
                 if (!CropManager.tillableBlocks.contains(block)) continue;
 
                 // 处理需要水源检查的情况
-                if (configure.keepWaterNearBy.value) {
+                if (configure.keepWaterNearBy.getValue()) {
                     if (!isWaterNearby(world, mutablePos)) continue;
                 }
 
@@ -222,7 +222,7 @@ public class TickListener {
     /* 去皮 */
     private void StripTick(ItemStack itemStack, Hand hand) {
         World world = p.getWorld();
-        int radius = configure.effect_radius.value;
+        int radius = configure.effectRadius.getValue();
         Vec3d posVec = p.getPos();
         int centerX = (int) Math.floor(posVec.x);
         int centerY = (int) Math.floor(posVec.y); //脚下方块
@@ -259,7 +259,7 @@ public class TickListener {
     /* 收获所有成熟作物 */
     private void harvestTick() {
         World world = p.getWorld();
-        int radius = configure.effect_radius.value;
+        int radius = configure.effectRadius.getValue();
         Vec3d posVec = p.getPos();
         int centerX = (int) Math.floor(posVec.x);
         int centerY = (int) Math.floor(posVec.y + 0.2D);// the "leg block", in case in soul sand
@@ -327,7 +327,7 @@ public class TickListener {
                     ItemStack s = inv.get(idx);
                     if (s.getItem() == lastUsedItem.getItem() &&
                             s.getDamage() == lastUsedItem.getDamage()) {
-                        AutoHarvest.instance.taskManager.Add_MoveItem(idx, p.getInventory().getSelectedSlot());
+                        AutoHarvest.INSTANCE.taskManager.Add_MoveItem(idx, p.getInventory().getSelectedSlot());
                         return s;
                     }
                 }
@@ -359,11 +359,11 @@ public class TickListener {
             return;
         }
         if (lastUsedItem == null && !CropManager.isSeed(itemStack)) return;
-        if (configure.tryFillItems.value) itemStack = tryFillItemInHand();
+        if (configure.tryFillItems.getValue()) itemStack = tryFillItemInHand();
         if (itemStack == null) return;
 
         World w = p.getWorld();
-        int radius = configure.effect_radius.value;
+        int radius = configure.effectRadius.getValue();
         Vec3d posVec = p.getPos();
         int X = (int) Math.floor(posVec.x);
         int Y = (int) Math.floor(posVec.y + 0.2D);// the "leg block" , in case in soul sand
@@ -395,14 +395,14 @@ public class TickListener {
     private void plantCocoaTick() {
         ItemStack handItem = p.getMainHandStack();
         if (!CropManager.isCocoa(handItem)) {
-            if (configure.tryFillItems.value) {
+            if (configure.tryFillItems.getValue()) {
                 handItem = tryFillItemInHand();
             }
             if (handItem == null || !CropManager.isCocoa(handItem)) return;
         }
 
         World world = p.getWorld();
-        int radius = configure.effect_radius.value;
+        int radius = configure.effectRadius.getValue();
         Vec3d posVec = p.getPos();
         int X = (int) Math.floor(posVec.x);
         int Y = (int) Math.floor(posVec.y + 0.2D);// the "leg block" , in case in soul sand
@@ -453,10 +453,10 @@ public class TickListener {
     /* 动物喂养 */
     private void feedTick() {
         ItemStack handItem = p.getMainHandStack();
-        if (configure.tryFillItems.value) handItem = tryFillItemInHand();
+        if (configure.tryFillItems.getValue()) handItem = tryFillItemInHand();
         if (handItem == null) return;
 
-        int radius = configure.effect_radius.value;
+        int radius = configure.effectRadius.getValue();
         Vec3d posVec = p.getPos();
         Box box = new Box(posVec.x - radius, posVec.y - radius,
                 posVec.z - radius, posVec.x + radius,
@@ -503,7 +503,7 @@ public class TickListener {
     private void feedAxolotTick(Box box) {
         ItemStack mainHandItem = p.getMainHandStack();
         ItemStack handItem = mainHandItem;
-        if (configure.tryFillItems.value) handItem = tryFillItemInHand();
+        if (configure.tryFillItems.getValue()) handItem = tryFillItemInHand();
         if (handItem == null || handItem.isOf(Items.WATER_BUCKET)) return;
 
         List<AxolotlEntity> axolotlEntities = p.getWorld().getEntitiesByClass(AxolotlEntity.class, box, axolotl ->
@@ -525,7 +525,7 @@ public class TickListener {
      **/
     private int tryReplacingFishingRod() {
         ItemStack itemStack = p.getMainHandStack();
-        boolean keepRodAlive = configure.keepFishingRodAlive.value;
+        boolean keepRodAlive = configure.keepFishingRodAlive.getValue();
 
         if (isUsableFishingRod(itemStack, keepRodAlive)) return 0; // 当前鱼竿可用
 
@@ -535,7 +535,7 @@ public class TickListener {
             ItemStack stack = inventory.get(slot);
             if (isUsableFishingRod(stack, keepRodAlive)) {
                 // 添加物品移动任务
-                AutoHarvest.instance.taskManager.Add_MoveItem(slot, p.getInventory().getSelectedSlot());
+                AutoHarvest.INSTANCE.taskManager.Add_MoveItem(slot, p.getInventory().getSelectedSlot());
                 return 1; // 找到并计划更换鱼竿
             }
         }
@@ -571,7 +571,7 @@ public class TickListener {
         switch (tryReplacingFishingRod()) {
             case -1:
                 AutoHarvest.msg("notify.turn.off");
-                AutoHarvest.instance.Switch = false;
+                AutoHarvest.INSTANCE.Switch = false;
                 break;
             case 0:
                 /* Reel */
@@ -599,12 +599,12 @@ public class TickListener {
     private void bonemealingTick() {
         ItemStack handItem = p.getMainHandStack();
 
-        if (configure.tryFillItems.value  && !CropManager.isBoneMeal(handItem)){
+        if (configure.tryFillItems.getValue()  && !CropManager.isBoneMeal(handItem)){
             handItem = tryFillItemInHand();
             if (!CropManager.isBoneMeal(handItem)) return;
         }
 
-        int radius = configure.effect_radius.value;
+        int radius = configure.effectRadius.getValue();
         World w = p.getWorld();
         BlockPos playerPos = new BlockPos(p.getBlockPos());
         Vec3d posVec = p.getPos();

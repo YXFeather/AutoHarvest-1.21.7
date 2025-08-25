@@ -1,4 +1,8 @@
 {
+  "modmenu.nameTranslation.autoharvest": "Auto Harvest",
+  "modmenu.descriptionTranslation.autoharvest": "Automatically terminate and harvest crops.",
+  "config.%s_config_screen": "%s Config Screen",
+  "config.%s": "%s",
   "key.category.general": "[AutoHarvest] General",
   "key.category.switchTo": "[AutoHarvest] Switch to",
   "key.general.switch": "Toggle AutoHarvest",
@@ -10,7 +14,7 @@
   "harvest": "Harvest mode",
   "plant": "Plant mode",
   "farmer": "Farmer mode",
-  "seed": "Seed mode",
+  "weed": "Seed mode",
   "feed": "Feed mode",
   "fishing": "Fishing mode",
   "bonemealing": "Bonemealing mode",
