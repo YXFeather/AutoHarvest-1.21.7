@@ -378,6 +378,20 @@ public class TickListener {
         }
     }
 
+    private void tryClearHand() {
+        if (player.getMainHandStack().isEmpty()) {
+            return;
+        }
+        DefaultedList<ItemStack> inv = player.getInventory().getMainStacks();
+        for (int idx = 0; idx < 36; ++idx){
+            ItemStack s = inv.get(idx);
+            if (s.isEmpty()) {
+                AutoHarvest.INSTANCE.taskManager.Add_MoveItem(idx, player.getInventory().getSelectedSlot());
+                return;
+            }
+        }
+    }
+
     /* 副手种植 */
 //    private void offplantTick() {
 //        ItemStack offHandItem = p.getOffHandStack();
@@ -519,8 +533,15 @@ public class TickListener {
 
     private void processAllayFeeding(Box box, ItemStack handItem) {
         player.getWorld().getEntitiesByClass(AllayEntity.class, box, allay ->
-                allay != null && allay.isAlive() && !allay.isHoldingItem() && allay.isDancing()
+                allay != null && allay.isAlive() && allay.isDancing()
         ).forEach(allay -> {
+            if (allay.isHoldingItem()){
+//                if (!allay.getStackInHand(Hand.MAIN_HAND).isOf(Items.AMETHYST_SHARD)){
+//                    return;
+//                }
+                tryClearHand();
+                interactWithEntity(handItem, allay);
+            }
             lastUsedItem = handItem.copy();
             interactWithEntity(handItem, allay);
 
