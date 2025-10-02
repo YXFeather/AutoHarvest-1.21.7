@@ -30,8 +30,12 @@ public class ClothConfig {
         scrolling.addEntry(entryBuilder.startBooleanToggle(Text.translatable("config.keep_fishing_rod_alive"),
                 c.keepFishingRodAlive.getValue()).setDefaultValue(c.keepFishingRodAlive.getValue())
                 .setSaveConsumer(c.keepFishingRodAlive::setValue).build());
+
         scrolling.addEntry(entryBuilder.startBooleanToggle(Text.translatable("config.try_fill_items_in_hand"),
                 c.tryFillItems.getValue()).setDefaultValue(c.tryFillItems.getValue()).setSaveConsumer(c.tryFillItems::setValue).build());
+
+        scrolling.addEntry(entryBuilder.startBooleanToggle(Text.translatable("config.try_auto_look_at"),
+                c.autoLookAt.getValue()).setDefaultValue(c.autoLookAt.getValue()).setSaveConsumer(c.autoLookAt::setValue).build());
 
         scrolling.addEntry(entryBuilder.startIntSlider(Text.translatable("config.effect_radius"),
                 c.effectRadius.getValue(), c.effectRadius.getMin(), c.effectRadius.getMax())

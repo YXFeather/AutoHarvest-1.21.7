@@ -30,5 +30,6 @@
   "config.keep_fishing_rod_alive": "不破坏鱼竿",
   "config.keep_water_near_by": "在水源附近耕地",
   "config.keep_water_near_by_tooltip": "以一格水为中心9x9范围内耕地",
-  "config.try_fill_items_in_hand": "尝试在手中填充物品"
+  "config.try_fill_items_in_hand": "尝试在手中填充物品",
+  "config.try_auto_look_at": "尝试自动看向目标位置"
 }

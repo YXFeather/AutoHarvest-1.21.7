@@ -31,5 +31,6 @@
   "config.keep_fishing_rod_alive": "Keep rod alive when fishing",
   "config.keep_water_near_by": "Keep tillage water near by",
   "config.keep_water_near_by_tooltip": "Tillage in 9x9 range around water",
-  "config.try_fill_items_in_hand": "Try fill items in hand"
+  "config.try_fill_items_in_hand": "Try fill items in hand",
+  "config.try_auto_look_at": "Try auto look at target position"
 }

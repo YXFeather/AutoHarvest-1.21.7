@@ -118,7 +118,7 @@ public class CropManager {
                     return animal instanceof SheepEntity sheep && !sheep.isSheared() && !sheep.isBaby();
                 }
                 // 喂养普通动物
-                return animal.canEat() && animal.isBreedingItem(handItem) && animal.getBreedingAge() >= 0;
+                return animal.canEat() && animal.isBreedingItem(handItem) && animal.getBreedingAge() >= 0 && !animal.isInLove();
             }
         );
     }

@@ -1,8 +1,15 @@
 package cat.zelather64.autoharvest;
 
+import cat.zelather64.autoharvest.Utils.SmoothLookHelper;
 import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.entity.passive.AxolotlEntity;
+import net.minecraft.item.Item;
+import net.minecraft.item.Items;
 import net.minecraft.text.Text;
+import net.minecraft.util.ActionResult;
 
 public class AutoHarvest implements ClientModInitializer {
 	public static final String MOD_NAME = "autoharvest";
@@ -25,12 +32,32 @@ public class AutoHarvest implements ClientModInitializer {
 			AutoHarvest.INSTANCE.KeyListener = new KeyPressListener();
 		}
 		AutoHarvest.INSTANCE.configure.load();
+
+		// 注册客户端Tick事件
+		ClientTickEvents.END_CLIENT_TICK.register(client -> {
+			// 确保client不为空，并且有玩家存在（在游戏内而非主菜单）
+			if (client.player != null) {
+				// 调用你的平滑视角更新逻辑
+				SmoothLookHelper.updateSmoothLook(client.player);
+			}
+		});
+
+		UseEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
+			if (entity instanceof AxolotlEntity){
+				Item heldItem = player.getStackInHand(hand).getItem();
+
+				if (heldItem == Items.WATER_BUCKET){
+					return ActionResult.FAIL;
+				}
+			}
+			return ActionResult.PASS;
+		});
 	}
 
 	public enum HarvestMode {
 		HARVEST, // Harvest only
 		PLANT, // Plant only
-		Farmer, // Harvest then re-plant
+		FARMER, // Harvest then re-plant
 		WEED, // Harvest seeds & flowers
 		BONEMEALING,
 		FEED, // Feed animals

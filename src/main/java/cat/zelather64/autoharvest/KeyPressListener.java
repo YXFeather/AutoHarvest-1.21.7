@@ -56,7 +56,7 @@ public class KeyPressListener {
         keyModeMap = new HashMap<>();
         keyModeMap.put(keyHarvest, AutoHarvest.HarvestMode.HARVEST);
         keyModeMap.put(keyPlant, AutoHarvest.HarvestMode.PLANT);
-        keyModeMap.put(keyFarmer, AutoHarvest.HarvestMode.Farmer);
+        keyModeMap.put(keyFarmer, AutoHarvest.HarvestMode.FARMER);
         keyModeMap.put(keyWeed, AutoHarvest.HarvestMode.WEED);
         keyModeMap.put(keyFeed, AutoHarvest.HarvestMode.FEED);
         keyModeMap.put(keyFishing, AutoHarvest.HarvestMode.FISHING);

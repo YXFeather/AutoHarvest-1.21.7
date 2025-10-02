@@ -22,6 +22,7 @@ public class Configure {
     public final BooleanConfig keepFishingRodAlive = new BooleanConfig("keepFishingRodAlive", true);
     public final BooleanConfig keepWaterNearBy = new BooleanConfig("keepWaterNearBy", true);
     public final BooleanConfig tryFillItems = new BooleanConfig("TryFillItemsInHand", true);
+    public final BooleanConfig autoLookAt = new BooleanConfig("TryAutoLookAt", true);
 
     public Configure() {
         this.configFile = FabricLoader.getInstance()
@@ -36,6 +37,7 @@ public class Configure {
         registerConfig(keepFishingRodAlive);
         registerConfig(keepWaterNearBy);
         registerConfig(tryFillItems);
+        registerConfig(autoLookAt);
     }
 
     private void registerConfig(IConfigValue<?> config) {
