@@ -1,103 +1,126 @@
 package cat.zelather64.autoharvest;
 
+import cat.zelather64.autoharvest.Config.KeyPressListener;
+import cat.zelather64.autoharvest.ModeManger.ModeManager;
+import cat.zelather64.autoharvest.Config.AutoHarvestConfig;
 import cat.zelather64.autoharvest.Utils.SmoothLookHelper;
+import me.shedaniel.autoconfig.AutoConfig;
+import me.shedaniel.autoconfig.serializer.GsonConfigSerializer;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.event.player.UseEntityCallback;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.entity.passive.AxolotlEntity;
-import net.minecraft.item.Item;
-import net.minecraft.item.Items;
-import net.minecraft.text.Text;
-import net.minecraft.util.ActionResult;
+import net.fabricmc.fabric.api.client.networking.v1.ClientLoginConnectionEvents;
+
+import java.util.logging.Logger;
 
 public class AutoHarvest implements ClientModInitializer {
-	public static final String MOD_NAME = "autoharvest";
-	public static AutoHarvest INSTANCE;
-	public HarvestMode mode = HarvestMode.FISHING;
-	public int overlayRemainingTick = 0;
-	public TickListener listener = null;
-	public KeyPressListener KeyListener = null;
+	public static final String MOD_ID = "autoharvest";
+	public static final Logger LOGGER = Logger.getLogger(MOD_ID);
 
-	TaskManager taskManager = new TaskManager();
-
-	public boolean Switch = false;
-	public Configure configure = new Configure();
+	// 保存 KeyPressListener 实例的引用，防止被垃圾回收
+	private KeyPressListener keyPressListener;
 
 	@Override
 	public void onInitializeClient() {
-		if (AutoHarvest.INSTANCE == null)
-			AutoHarvest.INSTANCE = new AutoHarvest();
-		if (AutoHarvest.INSTANCE.KeyListener == null) {
-			AutoHarvest.INSTANCE.KeyListener = new KeyPressListener();
+		LOGGER.info("AutoHarvest 模组初始化中...");
+
+		// 初始化配置
+		initializeConfig();
+
+		// 初始化按键监听器
+		initializeKeyListener();
+
+		// 注册事件监听器
+		registerEventListeners();
+
+		LOGGER.info("AutoHarvest 模组初始化完成");
+	}
+
+	/**
+	 * 初始化配置系统
+	 */
+	private void initializeConfig() {
+		try {
+			AutoConfig.register(AutoHarvestConfig.class, GsonConfigSerializer::new);
+			LOGGER.info("配置系统初始化完成");
+		} catch (Exception e) {
+//			LOGGER.("配置系统初始化失败: " + e.getMessage(), e);
 		}
-		AutoHarvest.INSTANCE.configure.load();
+	}
+
+	/**
+	 * 初始化按键监听器
+	 */
+	private void initializeKeyListener() {
+		try {
+			// 创建按键监听器实例
+			keyPressListener = new KeyPressListener();
+
+			LOGGER.info("按键监听器初始化完成");
+		} catch (Exception e) {
+//			LOGGER.log("按键监听器初始化失败: " + e.getMessage(), e);
+		}
+	}
+
+	/**
+	 * 注册事件监听器
+	 */
+	private void registerEventListeners() {
+		// 注册断开连接事件
+		ClientLoginConnectionEvents.DISCONNECT.register((handler, client) -> {
+			LOGGER.info("玩家断开连接，清理模式状态");
+			ModeManager.INSTANCE.clearMode();
+		});
 
 		// 注册客户端Tick事件
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
-			// 确保client不为空，并且有玩家存在（在游戏内而非主菜单）
-			if (client.player != null) {
-				// 调用你的平滑视角更新逻辑
-				SmoothLookHelper.updateSmoothLook(client.player);
-			}
-		});
+			// 只在有玩家时执行（在游戏内而非主菜单）
+			if (client.player != null && client.world != null) {
+				try {
+					if (AutoHarvestConfig.autoLookAt()) {
+						// 调用平滑视角更新逻辑
+						SmoothLookHelper.updateSmoothLook(client.player);
+					}
+					// 调用模式管理器tick
+					ModeManager.INSTANCE.tick();
 
-		UseEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
-			if (entity instanceof AxolotlEntity){
-				Item heldItem = player.getStackInHand(hand).getItem();
-
-				if (heldItem == Items.WATER_BUCKET){
-					return ActionResult.FAIL;
+				} catch (Exception e) {
+					// 防止单个异常导致整个tick崩溃
+					LOGGER.warning("客户端tick处理异常: " + e.getMessage());
 				}
 			}
-			return ActionResult.PASS;
 		});
+
+//		// 注册客户端加入世界事件（从配置加载模式）
+//		ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
+//			if (client.player != null) {
+//				LOGGER.info("玩家加入世界，加载保存的模式");
+//				loadSavedMode();
+//			}
+//		});
+//
+//		LOGGER.info("事件监听器注册完成");
 	}
 
-	public enum HarvestMode {
-		HARVEST, // Harvest only
-		PLANT, // Plant only
-		FARMER, // Harvest then re-plant
-		WEED, // Harvest seeds & flowers
-		BONEMEALING,
-		FEED, // Feed animals
-		FISHING,// Fishing
-		HOEING,// 耕地模式
-		AXEITEMS;//去皮，雕刻南瓜
-
-		private static HarvestMode[] vals = values();
-
-		public AutoHarvest.HarvestMode next() {
-			return vals[(this.ordinal() + 1) % vals.length];
+	/**
+	 * 从配置加载保存的模式
+	 */
+	private void loadSavedMode() {
+		try {
+			AutoHarvestConfig config = AutoHarvestConfig.getInstance();
+			if (config != null && config.theCurrentMode != null) {
+				ModeManager.INSTANCE.setMode(config.theCurrentMode);
+				LOGGER.info("已加载保存的模式: " + config.theCurrentMode);
+			}
+		} catch (Exception e) {
+			LOGGER.warning("加载保存的模式失败: " + e.getMessage());
 		}
 	}
 
-	public HarvestMode toSpecifiedMode(HarvestMode mode) {
-		// setDisabled();
-		if (listener == null) {
-			listener = new TickListener(configure, MinecraftClient.getInstance().player);
-		} else
-			listener.Reset();
-		this.mode = mode;
-		return mode;
+	/**
+	 * 获取按键监听器实例（供其他类使用）
+	 */
+	public KeyPressListener getKeyPressListener() {
+		return keyPressListener;
 	}
 
-	public HarvestMode toNextMode() {
-		// setDisabled();
-		if (listener == null) {
-			listener = new TickListener(configure, MinecraftClient.getInstance().player);
-		} else
-			listener.Reset();
-		mode = mode.next();
-		return mode;
-	}
-
-	public static void msg(String key, Object... obj) {
-		if (MinecraftClient.getInstance() == null)
-			return;
-		if (MinecraftClient.getInstance().player == null)
-			return;
-
-		MinecraftClient.getInstance().player.sendMessage(Text.of(Text.translatable("notify.prefix").getString() + Text.translatable(key, obj).getString()), true);
-	}
 }

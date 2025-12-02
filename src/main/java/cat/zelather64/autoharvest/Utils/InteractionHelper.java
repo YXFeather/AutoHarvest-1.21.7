@@ -1,0 +1,52 @@
+package cat.zelather64.autoharvest.Utils;
+
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.network.ClientPlayerEntity;
+import net.minecraft.entity.Entity;
+import net.minecraft.util.Hand;
+import net.minecraft.util.hit.BlockHitResult;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Direction;
+import net.minecraft.util.math.Vec3d;
+
+public class InteractionHelper {
+    private InteractionHelper() {}
+
+    // 和方块交互
+    public static void interactBlock(ClientPlayerEntity player, BlockPos blockPos, Hand hand, Direction side) {
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (client == null || client.interactionManager == null) return;
+        Vec3d hitPos = blockPos.toCenterPos();
+        BlockHitResult hitResult = new BlockHitResult(hitPos, side, blockPos, false);
+        client.interactionManager.interactBlock(player, hand, hitResult);
+    }
+
+    // 直接破坏的方块
+    public static void breakBlock(BlockPos block, Direction side){
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (client == null || client.interactionManager == null) return;
+        client.interactionManager.attackBlock(block, side);
+    }
+
+    // 需要长按破坏的方块
+    public static void updateBlockBreakingProgress(BlockPos blockPos, Direction direction) {
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (client == null || client.interactionManager == null) return;
+        client.interactionManager.updateBlockBreakingProgress(blockPos, direction);
+    }
+
+    // 和实体交互
+    public static void interactEntity(ClientPlayerEntity player, Entity target, Hand hand) {
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (client == null || client.interactionManager == null) return;
+        client.interactionManager.interactEntity(player, target, Hand.MAIN_HAND);
+    }
+
+    // 和物品交互
+    public static void interactItem(ClientPlayerEntity player, Hand hand){
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (client.interactionManager != null) {
+            client.interactionManager.interactItem(player, hand);
+        }
+    }
+}

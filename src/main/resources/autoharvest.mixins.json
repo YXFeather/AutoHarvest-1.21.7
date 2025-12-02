@@ -1,6 +1,6 @@
 {
 	"required": true,
-	"package": "cat.zelather64.autoharvest.Plugin",
+	"package": "cat.zelather64.autoharvest.Config",
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [
 	],
