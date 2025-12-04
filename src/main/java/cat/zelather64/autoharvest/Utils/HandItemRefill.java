@@ -23,6 +23,14 @@ public class HandItemRefill {
         client.execute(() -> doRefillHand(client, handType));
     }
 
+    // 新增：外部可调用的方法，用于交换指定背包槽和 selectedSlot
+    public static void swapWithSelected(int sourceSlot) {
+        MinecraftClient client = MinecraftClient.getInstance();
+        if (client == null || client.player == null) return;
+
+        client.execute(() -> doSwapWithSelected(client, sourceSlot));
+    }
+
     private static void doRefillHand(MinecraftClient client, HandType handType) {
         if (client.player == null || client.world == null) return;
 
@@ -63,6 +71,28 @@ public class HandItemRefill {
         }
     }
 
+    private static void doSwapWithSelected(MinecraftClient client, int sourceSlot) {
+        if (client.player == null || client.world == null) return;
+
+        PlayerInventory inv = client.player.getInventory();
+        int selectedSlot = inv.getSelectedSlot();
+
+        // 验证槽位合法性
+        if (sourceSlot < 0 || sourceSlot >= 36 || sourceSlot == selectedSlot) {
+            return;
+        }
+
+        ScreenHandler handler = client.player.currentScreenHandler;
+        int screenSourceSlot = convertToScreenSlot(sourceSlot);
+        int screenTargetSlot = convertToScreenSlot(selectedSlot); // 快捷栏对应的是 36~44
+
+        // 执行交换：点击源槽 → 点击目标槽（selectedSlot位置）→ 若光标不为空则点回源槽
+        if (!swapItems(handler, screenSourceSlot, screenTargetSlot)) {
+            // 失败时尝试恢复（上面 swapItems 已处理）
+//            clickSlot(handler, screenSourceSlot);
+        }
+    }
+
     private static int getTargetScreenSlot(HandType handType, int selectedSlot) {
         return handType == HandType.MAIN_HAND ?
                 convertToScreenSlot(selectedSlot) : OFF_HAND_SCREEN_SLOT;
@@ -93,13 +123,7 @@ public class HandItemRefill {
         MinecraftClient client = MinecraftClient.getInstance();
         if (client.player == null || client.interactionManager == null) return;
 
-        client.interactionManager.clickSlot(
-                handler.syncId,
-                slotIndex,
-                0,
-                SlotActionType.PICKUP,
-                client.player
-        );
+        client.interactionManager.clickSlot(handler.syncId, slotIndex, 0, SlotActionType.PICKUP, client.player);
     }
 
     private static int findMatchingStackInInventory(PlayerInventory inv, ItemStack targetStack, int excludeSlot) {

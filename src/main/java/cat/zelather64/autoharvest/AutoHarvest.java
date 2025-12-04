@@ -89,16 +89,6 @@ public class AutoHarvest implements ClientModInitializer {
 				}
 			}
 		});
-
-//		// 注册客户端加入世界事件（从配置加载模式）
-//		ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
-//			if (client.player != null) {
-//				LOGGER.info("玩家加入世界，加载保存的模式");
-//				loadSavedMode();
-//			}
-//		});
-//
-//		LOGGER.info("事件监听器注册完成");
 	}
 
 	/**

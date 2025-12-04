@@ -1,6 +1,6 @@
 package cat.zelather64.autoharvest.Config;
 
-import cat.zelather64.autoharvest.Mode.ModeEnum;
+import cat.zelather64.autoharvest.ModeManger.ModeEnum;
 import cat.zelather64.autoharvest.ModeManger.ModeManager;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
@@ -15,8 +15,8 @@ import java.util.*;
 
 public class KeyPressListener {
 
-    private static final String CATEGORY_GENERAL = "key.category.general";
-    private static final String CATEGORY_SWITCH_TO = "key.category.switchTo";
+    private static final String CATEGORY_GENERAL = "autoharvest.general";
+    private static final String CATEGORY_SWITCH_TO = "autoharvest.quicktoggle";
 
     // 重新组织按键绑定
     private final KeyBinding keyToggle;          // 原 keyAutoHarvest: 切换启用/禁用
@@ -30,8 +30,8 @@ public class KeyPressListener {
         String categorySwitchTo = Text.translatable(CATEGORY_SWITCH_TO).getString();
 
         // 创建按键绑定
-        keyToggle = createKeyBinding("key.general.toggle", GLFW.GLFW_KEY_H, categoryGeneral);
-        keyNextMode = createKeyBinding("key.general.nextMode", GLFW.GLFW_KEY_J, categoryGeneral);
+        keyNextMode = createKeyBinding("autoharvest.toggle", GLFW.GLFW_KEY_J, categoryGeneral);
+        keyToggle = createKeyBinding("autoharvest.switch", GLFW.GLFW_KEY_H, categoryGeneral);
 
         // 初始化直接模式按键映射
         directModeKeys = new LinkedHashMap<>();
@@ -41,9 +41,10 @@ public class KeyPressListener {
         directModeKeys.put(createKeyBinding("weed", GLFW.GLFW_KEY_UNKNOWN, categorySwitchTo), ModeEnum.WEED);
         directModeKeys.put(createKeyBinding("feed", GLFW.GLFW_KEY_UNKNOWN, categorySwitchTo), ModeEnum.FEED);
         directModeKeys.put(createKeyBinding("fishing", GLFW.GLFW_KEY_UNKNOWN, categorySwitchTo), ModeEnum.FISHING);
-        directModeKeys.put(createKeyBinding("bonemealing", GLFW.GLFW_KEY_UNKNOWN, categorySwitchTo), ModeEnum.BONE_MEALING);
+        directModeKeys.put(createKeyBinding("bonemeal", GLFW.GLFW_KEY_UNKNOWN, categorySwitchTo), ModeEnum.BONE_MEALING);
         directModeKeys.put(createKeyBinding("hoeing", GLFW.GLFW_KEY_UNKNOWN, categorySwitchTo), ModeEnum.HOEING);
         directModeKeys.put(createKeyBinding("stripping", GLFW.GLFW_KEY_UNKNOWN, categorySwitchTo), ModeEnum.STRIPPING);
+        directModeKeys.put(createKeyBinding("brewing", GLFW.GLFW_KEY_UNKNOWN, categorySwitchTo), ModeEnum.BREWMODE);
 
         // 注册客户端tick事件
         ClientTickEvents.END_CLIENT_TICK.register(this::onClientTick);
@@ -53,8 +54,8 @@ public class KeyPressListener {
      * 创建并注册按键绑定的辅助方法
      */
     private KeyBinding createKeyBinding(String translationKey, int keyCode, String category) {
-        String fullTranslationKey = translationKey.startsWith("key.") ?
-                translationKey : "key.general." + translationKey;
+        String fullTranslationKey = translationKey.startsWith("autoharvest.") ?
+                translationKey : "autoharvest.mode." + translationKey;
         KeyBinding keyBinding = new KeyBinding(fullTranslationKey, InputUtil.Type.KEYSYM, keyCode, category);
         KeyBindingHelper.registerKeyBinding(keyBinding);
         return keyBinding;

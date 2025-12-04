@@ -83,33 +83,4 @@ public class CompositeMode implements AutoMode{
         harvestMode.onDisable();
         plantMode.onDisable();
     }
-
-    //    private final List<AutoMode> modes;
-//
-//    public CompositeMode(AutoMode... modes){
-//        this.modes = List.of(modes);
-//    }
-//
-//    public static CompositeMode farmer(){
-//        return new CompositeMode(new PlantMode(), new HarvestMode());
-//    }
-//
-//    @Override
-//    public void tick(){
-//        modes.forEach(AutoMode::tick);
-//    }
-//
-//    @Override
-//    public String getName(){
-//        return modes.stream().map(AutoMode::getName).collect(Collectors.joining(" + "));
-//    }
-//
-//    public static String farmerMode_string(){
-//        return farmer().getName();
-//    }
-//
-//    @Override
-//    public void onDisable(){
-//        modes.forEach(AutoMode::onDisable);
-//    }
 }

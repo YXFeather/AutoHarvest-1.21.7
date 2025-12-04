@@ -1,4 +1,6 @@
-package cat.zelather64.autoharvest.Mode;
+package cat.zelather64.autoharvest.ModeManger;
+
+import cat.zelather64.autoharvest.Mode.*;
 
 import java.util.function.Supplier;
 
@@ -11,7 +13,8 @@ public enum ModeEnum {
     FEED("feed", FeedMode::new),
     FISHING("fishing", FishingMode::new),
     HOEING("hoeing", HoeMode::new),
-    STRIPPING("stripping", StrippedMode::new);
+    STRIPPING("stripping", StrippedMode::new),
+    BREWMODE("brewing", BrewMode::new);
 
     private static final ModeEnum[] VALUES = values();
     private final String translationKey;

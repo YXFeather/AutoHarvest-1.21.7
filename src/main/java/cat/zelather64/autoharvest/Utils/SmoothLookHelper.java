@@ -1,21 +1,25 @@
 package cat.zelather64.autoharvest.Utils;
 
+import cat.zelather64.autoharvest.Config.AutoHarvestConfig;
 import net.minecraft.entity.Entity;
+import net.minecraft.util.Hand;
+import net.minecraft.util.math.Vec3d;
 
 public class SmoothLookHelper {
+
     // 只存储客户端玩家的平滑转向信息
     private static SmoothLookData clientSmoothLookData = null;
 
     // 平滑转向数据类
     private static class SmoothLookData {
         public final double targetX, targetY, targetZ;
-        public final int durationTicks; // 动画持续时间（tick数）
+        public final double durationTicks; // 动画持续时间（tick数）
         public final float startYaw, startPitch;
         public final float targetYaw, targetPitch;
         public int elapsedTicks; // 已过去的tick数
 
         public SmoothLookData(double targetX, double targetY, double targetZ,
-                              int durationTicks, float startYaw, float startPitch,
+                              double durationTicks, float startYaw, float startPitch,
                               float targetYaw, float targetPitch) {
             this.targetX = targetX;
             this.targetY = targetY;
@@ -36,7 +40,7 @@ public class SmoothLookHelper {
      * @param targetZ 目标Z坐标
      * @param durationTicks 动画持续时间（tick数，20 tick = 1秒）
      */
-    public static void smoothLookAtPosition(Entity entity, double targetX, double targetY, double targetZ, int durationTicks) {
+    private static void smoothLookAtPosition(Entity entity, double targetX, double targetY, double targetZ, double durationTicks) {
         if (entity == null) return;
 
         // 计算目标角度
@@ -75,12 +79,24 @@ public class SmoothLookHelper {
         }
     }
 
+    public static void autoLookAt(Entity entity, Vec3d pos, Hand hand) {
+        if (!AutoHarvestConfig.autoLookAt()) return;
+        double posX = pos.getX();
+        double posY = pos.getY();
+        double posZ = pos.getZ();
+        smoothLookAtPosition(entity, posX, posY, posZ, AutoHarvestConfig.ticksPerAction());
+        BoxUtil.getPlayer().swingHand(hand);
+    }
+
 //    /**
 //     * 立即看向位置（只对客户端玩家有效）
 //     */
-//    public static void lookAtPosition(Entity entity, double targetX, double targetY, double targetZ) {
-//        smoothLookAtPosition(entity, targetX, targetY, targetZ, 0);
-//    }
+    public static void lookAtPosition(Entity entity, Vec3d pos) {
+        double posX = pos.getX();
+        double posY = pos.getY();
+        double posZ = pos.getZ();
+        smoothLookAtPosition(entity, posX, posY, posZ, 0);
+    }
 
     /**
      * 更新客户端玩家的平滑转向（需要在每tick调用）
@@ -97,7 +113,7 @@ public class SmoothLookHelper {
         clientSmoothLookData.elapsedTicks++;
 
         // 计算动画进度（0.0 到 1.0）
-        float progress = (float)clientSmoothLookData.elapsedTicks / clientSmoothLookData.durationTicks;
+        float progress = (float)(clientSmoothLookData.elapsedTicks / clientSmoothLookData.durationTicks);
 
         if (progress >= 1.0f) {
             // 动画完成

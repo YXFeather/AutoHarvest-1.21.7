@@ -1,6 +1,6 @@
 package cat.zelather64.autoharvest.Config;
 
-import cat.zelather64.autoharvest.Mode.ModeEnum;
+import cat.zelather64.autoharvest.ModeManger.ModeEnum;
 import me.shedaniel.autoconfig.AutoConfig;
 import me.shedaniel.autoconfig.ConfigData;
 import me.shedaniel.autoconfig.annotation.Config;
@@ -33,9 +33,6 @@ public class AutoHarvestConfig implements ConfigData {
     @ConfigEntry.Gui.Tooltip
     public int fishingReCastDelay = 10;
 
-//    @ConfigEntry.Gui.Tooltip
-//    public boolean flowerISseed = false;
-
     @ConfigEntry.Gui.Tooltip
     public boolean keepWaterNearby = false;
 
@@ -53,10 +50,6 @@ public class AutoHarvestConfig implements ConfigData {
 
     @ConfigEntry.Gui.Tooltip
     public boolean autoLookAt = false;
-
-//    public static ModeEnum theCurrentMode() {
-//        return getInstance().theCurrentMode;
-//    }
 
     public static int ticksPerAction() {
         return getInstance().ticksPerAction;
@@ -77,10 +70,6 @@ public class AutoHarvestConfig implements ConfigData {
     public static int fishingReCastDelay(){
         return getInstance().fishingReCastDelay;
     }
-
-//    public static boolean getFlowerIsSeed() {
-//        return getInstance().flowerISseed;
-//    }
 
     public static boolean getWaterNearby() {
         return getInstance().keepWaterNearby;

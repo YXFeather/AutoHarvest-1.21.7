@@ -3,6 +3,7 @@ package cat.zelather64.autoharvest.Utils;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.world.ClientWorld;
+import net.minecraft.screen.ScreenHandler;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
@@ -20,6 +21,10 @@ public class BoxUtil {
 
     public static ClientWorld getWorld() {
         return MinecraftClient.getInstance().world;
+    }
+
+    public static ScreenHandler getScreenHandler() {
+        return getPlayer().currentScreenHandler;
     }
 
     public static boolean isInSphere(BlockPos pos, Vec3d center, double radius){

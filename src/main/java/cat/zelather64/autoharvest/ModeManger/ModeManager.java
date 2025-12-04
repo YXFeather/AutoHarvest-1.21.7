@@ -1,7 +1,6 @@
 package cat.zelather64.autoharvest.ModeManger;
 
 import cat.zelather64.autoharvest.Mode.AutoMode;
-import cat.zelather64.autoharvest.Mode.ModeEnum;
 import cat.zelather64.autoharvest.Config.AutoHarvestConfig;
 
 import static cat.zelather64.autoharvest.AutoHarvest.LOGGER;
@@ -11,7 +10,7 @@ public class ModeManager {
     public static final ModeManager INSTANCE = new ModeManager();
 
     private AutoMode currentMode = null;
-    private ModeEnum currentModeEnum = ModeEnum.BONE_MEALING; // 默认模式
+    private ModeEnum currentModeEnum = ModeEnum.FARMER; // 默认模式
     private boolean enabled = false;
     private int tickCounter = 0;
 
