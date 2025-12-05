@@ -63,4 +63,10 @@ public class InteractionHelper {
             client.interactionManager.clickSlot(handler.syncId, slot, button, actionType, player);
         }
     }
+
+    public static void swapClickSlot(ScreenHandler handler,int targetSlot, int requiredItem, ClientPlayerEntity player) {
+        InteractionHelper.clickSlot(handler, requiredItem, 0, SlotActionType.PICKUP, player);
+        InteractionHelper.clickSlot(handler, targetSlot, 1, SlotActionType.PICKUP, player);
+        InteractionHelper.clickSlot(handler, requiredItem, 0, SlotActionType.PICKUP, player);
+    }
 }

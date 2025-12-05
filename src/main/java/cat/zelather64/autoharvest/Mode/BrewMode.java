@@ -36,13 +36,14 @@ import java.util.*;
 
 public class BrewMode implements AutoMode{
 
-    private static final int SEARCH_RADIUS = (int) Math.ceil(AutoHarvestConfig.getRadius());
+    private static final int SEARCH_RADIUS = 2;
     private BlockPos targetBrewingStand = null;
     private long lastActionTime = 0L;
     private static final long ACTION_DELAY = 15L; // 1秒 = 20 ticks
     private boolean isOpen = false;
     private boolean isWaitingToReopen = false;
     private boolean needsStateUpdate = false; // 标记是否需要更新状态
+
 
     // 取出药水相关变量
     private long takeCountdownEndTime = 0;
@@ -65,21 +66,8 @@ public class BrewMode implements AutoMode{
 
         long currentTime = world.getTime();
 
-        // 首先检查是否有3个水瓶，酿造台界面是否关闭
-        if (!isOpen && haveWaterBottle(player) != 3) {
-            getWaterBottle(player);
-            return;
-        }
-
-        if (!isOpen && !throwSplashPotion(player)) {
-            return;
-        }
-
-        // 如果有喷溅型药品取出
-        if (isOpen && !takeSplashPotion(player)) {
-            System.out.println("[AutoBrewing] 尝试取出喷溅型药品");
-            return;
-        }
+        // 先检查酿造台内部和背包情况
+        if (checkBrewingStand(player)) return;
 
         // 如果还没扫描过所有酿造台，先进行扫描
         if (!hasScannedAllStands) {
@@ -118,9 +106,6 @@ public class BrewMode implements AutoMode{
                 updateCurrentBrewingStandState();
                 needsStateUpdate = false;
             }
-
-            // 先检查酿造台内部情况
-            if (checkBrewingStand(player)) return;
         }
 
         // 如果没有打开的酿造台且不在等待状态，打开下一个酿造台
@@ -143,6 +128,9 @@ public class BrewMode implements AutoMode{
             }
         }
         System.out.println("[AutoBrewing] 共找到 " + BREWINGSTANDS.size() + " 个酿造台");
+        if (BREWINGSTANDS.isEmpty()) {
+            disable("2");
+        }
     }
 
     // 初始化迭代器
@@ -193,55 +181,99 @@ public class BrewMode implements AutoMode{
     }
 
     private boolean checkBrewingStand(ClientPlayerEntity player) {
+        // 首先检查是否有3个水瓶，酿造台界面是否关闭
+        if (!isOpen) {
+            if (haveWaterBottle(player) != 3) {
+                getWaterBottle(player);
+                return true;
+            }
+
+            if (!throwSplashPotion(player)) {
+                return true;
+            }
+        }
+
         if (isOpen) {
-            // 如果酿造台还没有放入瓶子，检查并放入空瓶
+
             if (hasInsertedBottles()) {
-                System.out.println("[AutoBrewing] 尝试放入空瓶");
                 insertEmptyBottles(player);
                 addNetherWart(player);
                 return true;
             }
 
+            // 如果有喷溅型药品取出
+            if (!takeSplashPotion(player)) {
+//            System.out.println("[AutoBrewing] 尝试取出喷溅型药品");
+                return true;
+            }
+
             // 如果已经放入瓶子但还没有添加材料，检查并添加酿造材料
-            if (hasAddedIngredients() || getInputItem() != getRequiredItem()) {
-                System.out.println("[AutoBrewing] 尝试添加酿造材料");
+            if ((hasAddedIngredients() || getInputItem() != getRequiredItem())) {
                 addBrewingIngredientsIfNeeded(player);
+                updateCurrentBrewingStandState();
                 return true;
             }
         }
         return false;
     }
 
+//    public boolean hasInsertedBottles() {
+//        ScreenHandler handler = BoxUtil.getScreenHandler();
+//        if (handler == null) return false;
+//        int potionCount = 0;
+//        int waterBottleCount = 0;
+//        for (int i = 0; i < 3; i++) {
+//            ItemStack bottleSlot = handler.getSlot(i).getStack();
+//            if (!bottleSlot.isEmpty()) {
+//                if (!isWaterBottle2(bottleSlot)) {
+//                    potionCount++;
+//                }
+//                waterBottleCount++;
+//            }
+//        }
+//        if (potionCount > 0) {
+//            return false;
+//        }
+//        return !(waterBottleCount == 3);
+//    }
+
     public boolean hasInsertedBottles() {
         ScreenHandler handler = BoxUtil.getScreenHandler();
         if (handler == null) return false;
-        int potionCount = 0;
-        int waterBottleCount = 0;
+        ItemStack bottleSlot = null;
         for (int i = 0; i < 3; i++) {
-            ItemStack bottleSlot = handler.getSlot(i).getStack();
+            bottleSlot = handler.getSlot(i).getStack();
             if (!bottleSlot.isEmpty()) {
                 if (!isWaterBottle2(bottleSlot)) {
-                    potionCount++;
+                    return false;
                 }
-                waterBottleCount++;
             }
         }
-        if (potionCount > 0) {
-            return false;
-        }
-        return !(waterBottleCount == 3);
-        }
+        return bottleSlot.isEmpty();
+    }
 
+//    private void insertEmptyBottles(ClientPlayerEntity player) {
+//        ScreenHandler handler = BoxUtil.getScreenHandler();
+//        if (handler == null) return;
+//
+//        for (int bottleSlot = 0; bottleSlot < 3; ++ bottleSlot) {
+//            // 从玩家背包中寻找水瓶
+//            int sourceSlot = findItemInPlayerContainer(handler, Items.POTION, this::isWaterBottle2);
+//            if (sourceSlot != -1) {
+//                InteractionHelper.clickSlot(handler, sourceSlot, 0, SlotActionType.QUICK_MOVE, player);
+//            }
+//        }
+//    }
     private void insertEmptyBottles(ClientPlayerEntity player) {
         ScreenHandler handler = BoxUtil.getScreenHandler();
         if (handler == null) return;
 
-        for (int bottleSlot = 0; bottleSlot < 3; ++ bottleSlot) {
+//        for (int bottleSlot = 0; bottleSlot < 3; ++ bottleSlot) {
             // 从玩家背包中寻找水瓶
-            int sourceSlot = findItemInPlayerContainer(handler, Items.POTION, this::isWaterBottle2);
-            if (sourceSlot != -1) {
-                InteractionHelper.clickSlot(handler, sourceSlot, 0, SlotActionType.QUICK_MOVE, player);
-            }
+        int sourceSlot = findItemInPlayerContainer(handler, Items.POTION, this::isWaterBottle2);
+        if (sourceSlot != -1) {
+            InteractionHelper.clickSlot(handler, sourceSlot, 0, SlotActionType.QUICK_MOVE, player);
+//            }
         }
     }
 
@@ -254,17 +286,24 @@ public class BrewMode implements AutoMode{
 
         if (requiredIngredient == null) return;
 
-        // 检查输入槽位（索引3）是否为空
+        // 检查输入槽位（索引3和4）是否为空
         ItemStack inputSlot = handler.getSlot(3).getStack();
-        int sourceSlot = findItemInPlayerContainer(handler, requiredIngredient, null);
+        ItemStack fuelSlot = handler.getSlot(4).getStack();
+        if (fuelSlot.isEmpty()) {
+            // 从玩家背包中寻找所需烈焰粉
+            int fuelItem = findItemInPlayerContainer(handler, Items.BLAZE_POWDER, null);
+            if (fuelItem != -1) {
+                // 将 fuelItem 放入燃料槽位
+                InteractionHelper.swapClickSlot(handler, 4, fuelItem, player);
+            }
+        }
 
         if (inputSlot.isEmpty()) {
             // 从玩家背包中寻找所需材料
-            if (sourceSlot != -1) {
+            int requiredItem = findItemInPlayerContainer(handler, requiredIngredient, null);
+            if (requiredItem != -1) {
                 // 将材料放入输入槽位
-                InteractionHelper.clickSlot(handler, sourceSlot, 0, SlotActionType.PICKUP, player);
-                InteractionHelper.clickSlot(handler, 3, 1, SlotActionType.PICKUP, player);
-                InteractionHelper.clickSlot(handler, sourceSlot, 0, SlotActionType.PICKUP, player);
+                InteractionHelper.swapClickSlot(handler, 3, requiredItem, player);
             }
         } else if (inputSlot != requiredIngredient.getDefaultStack()) {
             InteractionHelper.clickSlot(handler, 3, 0, SlotActionType.QUICK_MOVE, player);
@@ -275,10 +314,10 @@ public class BrewMode implements AutoMode{
         ScreenHandler handler = BoxUtil.getScreenHandler();
         // 检查输入槽位（索引3）是否为空
         ItemStack inputSlot = handler.getSlot(3).getStack();
-        int sourceSlot = findItemInPlayerContainer(handler, Items.NETHER_WART, null);
 
         if (inputSlot.isEmpty()) {
             // 从玩家背包中寻找所需材料
+            int sourceSlot = findItemInPlayerContainer(handler, Items.NETHER_WART, null);
             if (sourceSlot != -1) {
                 // 将材料放入输入槽位
                 InteractionHelper.clickSlot(handler, sourceSlot, 0, SlotActionType.PICKUP, player);
@@ -319,7 +358,10 @@ public class BrewMode implements AutoMode{
             int splashSlot = getSplashItem();
             if (splashSlot != -1) {
                 ScreenHandler handler = BoxUtil.getScreenHandler();
+                int waterBottleSlot = findItemInPlayerContainer(handler, Items.POTION, this::isWaterBottle2);
                 InteractionHelper.clickSlot(handler, splashSlot, 0, SlotActionType.QUICK_MOVE, player);
+                InteractionHelper.clickSlot(handler, waterBottleSlot, 0, SlotActionType.QUICK_MOVE, player);
+                addNetherWart(player);
 //                closeBrewingStandGUI();
 
                 // 设置倒计时
@@ -371,14 +413,6 @@ public class BrewMode implements AutoMode{
         }
     }
 
-    private boolean isCountingDown(boolean isTakeOperation) {
-        if (isTakeOperation) {
-            return takeCountdownEndTime > 0 && !isCountdownFinished(true);
-        } else {
-            return throwCountdownEndTime > 0 && !isCountdownFinished(false);
-        }
-    }
-
     private void throwPotionFromInventory(ClientPlayerEntity player) {
         PlayerInventory inventory = player.getInventory();
         int slotIndex = findItemSlot(player, inventory.size(), Items.SPLASH_POTION);
@@ -408,20 +442,6 @@ public class BrewMode implements AutoMode{
         return bestSlot;
     }
 
-//    private boolean haveSplashPotion () {
-//        ScreenHandler handler = BoxUtil.getScreenHandler();
-//        if (handler == null) return false;
-//
-//        for (int i = 0; i < 3; i++) {
-//            Item bottleSlot = handler.getSlot(i).getStack().getItem();
-//            if (bottleSlot == Items.SPLASH_POTION) {
-//                isWaitingToReopen = true;
-//                return true;
-//            }
-//        }
-//        return false;
-//    }
-
     private int getSplashItem() {
         ScreenHandler handler = BoxUtil.getScreenHandler();
         if (handler == null) return -1;
@@ -441,7 +461,7 @@ public class BrewMode implements AutoMode{
         SmoothLookHelper.lookAtPosition(player, playerPos);
         int slotSize = inventory.size();
         int slotIndex = findItemSlot(player, slotSize, Items.GLASS_BOTTLE);
-        if (slotIndex == -1) disable(player);
+        if (slotIndex == -1) disable(null);
 
         HandItemRefill.swapWithSelected(slotIndex);
 
@@ -451,11 +471,12 @@ public class BrewMode implements AutoMode{
                 FluidState fluidState = blockState.getFluidState();
                 if (fluidState.isIn(FluidTags.WATER)) {
                     InteractionHelper.interactItem(player, Hand.MAIN_HAND);
-                    System.out.println("Water Bottle Found");
+//                    System.out.println("Water Bottle Found");
                     return;
                 }
             }
         }
+        disable("1");
     }
 
     private int haveWaterBottle(ClientPlayerEntity player) {
@@ -474,7 +495,7 @@ public class BrewMode implements AutoMode{
 
     private Item getRequiredItem() {
         ScreenHandler handler = BoxUtil.getScreenHandler();
-        System.out.println("[AutoBrewing] 获取酿造台" + targetBrewingStand);
+
         if (handler == null || targetBrewingStand == null) return null;
 
         // 获取当前酿造台状态
@@ -484,7 +505,7 @@ public class BrewMode implements AutoMode{
 
         int progress = state.getProgress();
 
-        System.out.println("[AutoBrewing] 酿造进度: " + progress);
+//        System.out.println("[AutoBrewing] 酿造进度: " + progress);
 
         // 根据进度确定需要的材料
         return switch (progress) {
@@ -533,7 +554,7 @@ public class BrewMode implements AutoMode{
                 }
             }
         }
-        disable(BoxUtil.getPlayer());
+        disable(null);
         return -1; // 未找材料到则退出循环
     }
 
@@ -710,11 +731,30 @@ public class BrewMode implements AutoMode{
         }
     }
 
-    private void disable (ClientPlayerEntity player){
-        player.sendMessage(
-                Text.translatable("autoharvest.message.materialShortage", getName()),
-                false
-        );
+    private String getItem() {
+        Item item = getRequiredItem();
+        return item == null ? (Items.GLASS_BOTTLE).toString() : item.toString();
+    }
+
+    private void disable (String reason){
+        ClientPlayerEntity player = BoxUtil.getPlayer();
+        if (Objects.equals(reason, "1")) {
+            player.sendMessage(
+                    Text.translatable("autoharvest.message.checkWaterBlock", getName(), reason),
+                    false
+            );
+        } else if (Objects.equals(reason, "2")) {
+            player.sendMessage(
+                    Text.translatable("autoharvest.message.checkBrewingStand", getName(), reason),
+                    false
+            );
+        }
+        else {
+            player.sendMessage(
+                    Text.translatable("autoharvest.message.materialShortage", getName() , getItem()),
+                    false
+            );
+        }
         ModeManager.INSTANCE.toggle();
     }
 }
