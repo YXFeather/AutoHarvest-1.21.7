@@ -17,6 +17,7 @@
   "autoharvest.message.switched": "§a[自動收穫] §f已切换至: §e%s",
   "autoharvest.message.checkBrewingStand": "§a[自动收获] §f已關閉§e%s : §c周圍沒有釀造台!",
   "autoharvest.message.checkWaterBlock": "§a[自动收获] §f已關閉§e%s : §c檢查腳下 含水樹葉 方塊!",
+  "autoharvest.message.checkGlassBottle": "§a[自動收穫] §f已關閉§e%s : §c缺少 %s !",
   "autoharvest.message.materialShortage": "§a[自動收穫] §f已關閉§e%s : §4缺少 %s !",
   "autoharvest.general": "自動收穫",
   "autoharvest.toggle": "模式切換",
