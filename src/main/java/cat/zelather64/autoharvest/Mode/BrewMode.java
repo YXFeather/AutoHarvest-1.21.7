@@ -40,13 +40,13 @@ public class BrewMode implements AutoMode{
 
     private final Item netherWart = Items.NETHER_WART;
     private final Item sugar = Items.SUGAR;
-    private final Item redstone = Items.REDSTONE;
+    private final Item redStone = Items.REDSTONE;
     private final Item gunpowder = Items.GUNPOWDER;
     private final Item blazePowder = Items.BLAZE_POWDER;
     private final Item glassBottle = Items.GLASS_BOTTLE;
     private int netherWart_slot = -1;
     private int sugar_slot = -1;
-    private int redstone_slot = -1;
+    private int redStone_slot = -1;
     private int gunpowder_slot = -1;
     private int blazePowder_slot = -1;
     private int glassBottle_slot = -1;
@@ -287,7 +287,7 @@ public class BrewMode implements AutoMode{
         if (!isOpen) {
             // 首先检查背包是否有3个水瓶
 //            System.out.println("[AutoBrewing] 酿造台界面已关闭");
-            if (!haveWaterBottleInPlayerInventory(player)) {
+            if (!haveWaterBottleInPlayerInventory()) {
                 getWaterBottle(player);
                 return true;
             }
@@ -319,8 +319,8 @@ public class BrewMode implements AutoMode{
         return false;
     }
 
-    private boolean haveWaterBottleInPlayerInventory(ClientPlayerEntity player) {
-        PlayerInventory inventory = player.getInventory();
+    private boolean haveWaterBottleInPlayerInventory() {
+        PlayerInventory inventory = BoxUtil.getInventory();
         int slotSize = inventory.size();
         int count = 0;
         for (int i = 0; i < slotSize; i++) {
@@ -333,6 +333,10 @@ public class BrewMode implements AutoMode{
                 if (count == 3) {return true;}
             }
         }
+        if (glassBottle_slot == -1) {
+            disable(3);
+            return false;
+        }
         return false;
     }
 
@@ -343,9 +347,18 @@ public class BrewMode implements AutoMode{
         Vec3d playerPos = BoxUtil.getPlayerPos();
         if (playerPos == null) return;
 
+        int slotIndex = -1;
         int glassBottleIndex = glassBottle_slot;
+        PlayerInventory playerInventory = BoxUtil.getInventory();
         ItemStack glassBottle = player.getInventory().getStack(glassBottleIndex);
-        if (glassBottle.getCount() <= 2 || glassBottleIndex == -1) {
+
+        if (glassBottle.getCount() <= 2) {
+            slotIndex = findItemSlot(playerInventory.size(), Items.GLASS_BOTTLE);
+            if (slotIndex != -1 ) {
+                glassBottleIndex = slotIndex;
+            }
+        }
+        if (glassBottleIndex == -1 || slotIndex == -1){
             disable(3);
             return;
         }
@@ -412,7 +425,7 @@ public class BrewMode implements AutoMode{
 
         netherWart_slot = -1;
         sugar_slot = -1;
-        redstone_slot = -1;
+        redStone_slot = -1;
         gunpowder_slot = -1;
         blazePowder_slot = -1;
 
@@ -424,23 +437,23 @@ public class BrewMode implements AutoMode{
             if (itemStack.isEmpty()) continue;
             if (itemStack.isOf(netherWart)) netherWart_slot = i;
             if (itemStack.isOf(sugar)) sugar_slot = i;
-            if (itemStack.isOf(redstone)) redstone_slot = i;
+            if (itemStack.isOf(redStone)) redStone_slot = i;
             if (itemStack.isOf(gunpowder)) gunpowder_slot = i;
             if (itemStack.isOf(blazePowder)) blazePowder_slot = i;
         }
         if (netherWart_slot == -1 || sugar_slot == -1 ||
-                redstone_slot == -1 || gunpowder_slot == -1 ||
+                redStone_slot == -1 || gunpowder_slot == -1 ||
                 blazePowder_slot == -1) {
             disable(-1);
             return false;
-        };
+        }
         return true;
     }
 
     private Item getItemFromInventory() {
         if (netherWart_slot == -1) return netherWart;
         if (sugar_slot == -1) return sugar;
-        if (redstone_slot == -1) return redstone;
+        if (redStone_slot == -1) return redStone;
         if (gunpowder_slot == -1) return gunpowder;
         if (blazePowder_slot == -1) return blazePowder;
         return getRequiredItem().item();
@@ -505,7 +518,7 @@ public class BrewMode implements AutoMode{
             case 2 -> // 粗制药水 -> 速度药水，需要糖
                     new ItemSlot(sugar, sugar_slot);
             case 3 -> // 速度药水 -> 延长速度药水，需要红石
-                    new ItemSlot(redstone, redstone_slot);
+                    new ItemSlot(redStone, redStone_slot);
             case 4 -> // 延长速度药水 -> 喷溅型延长速度药水，需要火药
                     new ItemSlot(gunpowder, gunpowder_slot);
             default -> // 其他状态下不需要添加材料
@@ -583,8 +596,8 @@ public class BrewMode implements AutoMode{
     }
 
     private void throwPotionFromInventory(ClientPlayerEntity player) {
-        PlayerInventory inventory = player.getInventory();
-        int slotIndex = findItemSlot(player, inventory.size(), Items.SPLASH_POTION);
+        PlayerInventory inventory = BoxUtil.getInventory();
+        int slotIndex = findItemSlot(inventory.size(), Items.SPLASH_POTION);
 
         if (slotIndex == -1) return;
 
@@ -593,20 +606,14 @@ public class BrewMode implements AutoMode{
         InteractionHelper.interactItem(player, Hand.MAIN_HAND);
     }
 
-    private int findItemSlot(ClientPlayerEntity player, int slotSize, Item item) {
-        int currentSlot = player.getInventory().getSelectedSlot();
+    private int findItemSlot(int slotSize, Item item) {
+        PlayerInventory inventory = BoxUtil.getInventory();
         int bestSlot = -1;
-        int minDistance = Integer.MAX_VALUE;
-
-        PlayerInventory inventory = player.getInventory();
 
         for (int slot = 0; slot < slotSize; slot++) {
             if (inventory.getStack(slot).getItem() == item) {
-                int distance = Math.abs(slot - currentSlot);
-                if (distance < minDistance) {
-                    minDistance = distance;
-                    bestSlot = slot;
-                }
+                bestSlot = slot;
+                return bestSlot;
             }
         }
         return bestSlot;
@@ -727,7 +734,7 @@ public class BrewMode implements AutoMode{
         needsStateUpdate = false;
         netherWart_slot = -1;
         sugar_slot = -1;
-        redstone_slot = -1;
+        redStone_slot = -1;
         gunpowder_slot = -1;
         blazePowder_slot = -1;
         glassBottle_slot = -1;

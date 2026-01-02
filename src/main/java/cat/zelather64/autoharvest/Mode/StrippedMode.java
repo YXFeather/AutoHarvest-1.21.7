@@ -5,16 +5,13 @@ import cat.zelather64.autoharvest.Utils.BoxUtil;
 import cat.zelather64.autoharvest.Utils.InteractionHelper;
 import com.google.common.collect.ImmutableSet;
 import net.minecraft.block.Block;
-import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.registry.tag.ItemTags;
-import net.minecraft.registry.tag.TagKey;
 import net.minecraft.text.Text;
 import net.minecraft.util.Hand;
 import net.minecraft.util.math.BlockPos;
@@ -39,7 +36,8 @@ public class StrippedMode implements AutoMode{
             Blocks.MANGROVE_WOOD, Blocks.MANGROVE_LOG,
             Blocks.SPRUCE_WOOD, Blocks.SPRUCE_LOG,
             Blocks.CRIMSON_HYPHAE, Blocks.CRIMSON_STEM,
-            Blocks.WARPED_HYPHAE, Blocks.WARPED_STEM
+            Blocks.WARPED_HYPHAE, Blocks.WARPED_STEM,
+            Blocks.PALE_OAK_WOOD, Blocks.PALE_OAK_LOG
     );
 
     // 可以雕刻的南瓜方块

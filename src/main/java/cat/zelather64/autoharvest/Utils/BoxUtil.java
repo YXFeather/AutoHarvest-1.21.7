@@ -3,6 +3,8 @@ package cat.zelather64.autoharvest.Utils;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.world.ClientWorld;
+import net.minecraft.entity.player.PlayerInventory;
+import net.minecraft.inventory.Inventory;
 import net.minecraft.screen.ScreenHandler;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
@@ -25,6 +27,10 @@ public class BoxUtil {
 
     public static ScreenHandler getScreenHandler() {
         return getPlayer().currentScreenHandler;
+    }
+
+    public static PlayerInventory getInventory() {
+        return getPlayer().getInventory();
     }
 
     public static boolean isInSphere(BlockPos pos, Vec3d center, double radius){
