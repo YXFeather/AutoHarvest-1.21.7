@@ -5,7 +5,7 @@
 #### 这是个客户端模组
 
 #### 需求
-1. Minecraft 1.21.7
+1. Minecraft 1.21.11
 2. [Fabric](https://fabricmc.net/wiki/install)
 3. [Fabric API](https://modrinth.com/mod/fabric-api)  
 4. [Cloth Config API](https://modrinth.com/mod/cloth-config)
