@@ -1,0 +1,37 @@
+{
+	"schemaVersion": 1,
+	"id": "autoharvest",
+	"version": "${version}",
+	"name": "AutoHarveset",
+	"description": "Automatically terminate and harvest crops.",
+	"authors": [
+		"SzYuan"
+	],
+	"contributors": [
+		"Zelather64"
+	],
+	"contact": {
+		"sources": "https://github.com/YXFeather/AutoHarvest-1.21.7/tree/master"
+	},
+	"license": "MIT",
+	"icon": "assets/autoharvest/icon.png",
+	"environment": "client",
+	"entrypoints": {
+		"client": [
+			"cat.zelather64.autoharvest.AutoHarvest"
+		],
+		"modmenu": [
+			"cat.zelather64.autoharvest.Config.AutoHarvestModMenu"
+		]
+	},
+	"mixins": [],
+	"depends": {
+		"fabricloader": ">=0.19.2",
+		"minecraft": "~1.21.11",
+		"java": ">=21",
+		"fabric-api": "*"
+	},
+	"suggests": {
+		"another-mod": "*"
+	}
+}
