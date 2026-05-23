@@ -354,13 +354,13 @@ public class BrewMode implements AutoMode{
 
         if (glassBottle.getCount() <= 2) {
             slotIndex = findItemSlot(playerInventory.size(), Items.GLASS_BOTTLE);
+            System.out.println("[AutoBrewing] 获取水瓶" + slotIndex);
             if (slotIndex != -1 ) {
                 glassBottleIndex = slotIndex;
+            }else {
+                disable(3);
+                return;
             }
-        }
-        if (glassBottleIndex == -1 || slotIndex == -1){
-            disable(3);
-            return;
         }
 
         HandItemRefill.swapWithSelected(glassBottleIndex);

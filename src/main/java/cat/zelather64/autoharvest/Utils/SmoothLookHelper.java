@@ -1,6 +1,8 @@
 package cat.zelather64.autoharvest.Utils;
 
 import cat.zelather64.autoharvest.Config.AutoHarvestConfig;
+import cat.zelather64.autoharvest.ModeManger.ModeEnum;
+import cat.zelather64.autoharvest.ModeManger.ModeManager;
 import net.minecraft.entity.Entity;
 import net.minecraft.util.Hand;
 import net.minecraft.util.math.Vec3d;
@@ -80,7 +82,7 @@ public class SmoothLookHelper {
     }
 
     public static void autoLookAt(Entity entity, Vec3d pos, Hand hand) {
-        if (!AutoHarvestConfig.autoLookAt()) return;
+        if (!AutoHarvestConfig.autoLookAt() || ModeManager.INSTANCE.getCurrentModeEnum().equals(ModeEnum.FISHING)) return;
         double posX = pos.getX();
         double posY = pos.getY();
         double posZ = pos.getZ();
